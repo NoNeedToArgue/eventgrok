@@ -16,9 +16,12 @@ public class EventService : IEventService
         return _events.FirstOrDefault(e => e.Id == id);
     }
 
-    public void AddEvent(Event newEvent)
+    public Event AddEvent(Event newEvent)
     {
+        newEvent.Id = _events.Any() ? _events.Max(e => e.Id) + 1 : 1;
+        
         _events.Add(newEvent);
+        return newEvent;
     }
 
     public bool UpdateEvent(int id, Event updatedEvent)
