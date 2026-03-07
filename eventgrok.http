@@ -1,0 +1,6 @@
+@eventgrok_HostAddress = http://localhost:5174
+
+GET {{eventgrok_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
