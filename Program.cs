@@ -1,3 +1,5 @@
+using EventGrok.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -13,6 +15,9 @@ if (builder.Environment.IsDevelopment())
         options.ValidateOnBuild = true;
     });
 }
+
+// Singleton на время In-Memory хранилища, чтобы сохранялись изменения после запросов (вариант: Scoped если список захардкодить)
+builder.Services.AddSingleton<IEventService, EventService>();
 
 var app = builder.Build();
 
