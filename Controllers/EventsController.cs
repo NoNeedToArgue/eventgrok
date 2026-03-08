@@ -43,6 +43,8 @@ public class EventsController(IEventService eventService) : ControllerBase
 
         Event eventToUpdate = MapToEvent(dto);
 
+        eventToUpdate.Id = id;
+
         if (!eventService.UpdateEvent(id, eventToUpdate))
             return NotFound();
 
