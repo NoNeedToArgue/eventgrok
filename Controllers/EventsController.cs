@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EventGrok.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("events")]
 public class EventsController(IEventService eventService) : ControllerBase
 {
     [HttpGet]
