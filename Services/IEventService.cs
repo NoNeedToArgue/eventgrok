@@ -6,11 +6,11 @@ public interface IEventService
 {
     List<Event> GetEvents();
     
-    Event? GetEventById(int id);
+    Event GetEventById(int id);
     
     Event AddEvent(Event newEvent);
     
-    bool UpdateEvent(int id, Event updatedEvent);
+    void UpdateEvent(int id, Event updatedEvent);
     
-    bool RemoveEvent(int id);
+    void RemoveEvent(int id);
 }

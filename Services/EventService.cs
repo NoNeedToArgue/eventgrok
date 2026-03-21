@@ -6,36 +6,54 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = [];
 
+    private int FindEventIndex(int id)
+    {
+        int index = _events.FindIndex(e => e.Id == id);
+        if (index == -1)
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+
+        return index;
+    }
+
     public List<Event> GetEvents()
     {
         return [.. _events];
     }
 
-    public Event? GetEventById(int id)
+    public Event GetEventById(int id)
     {
-        return _events.FirstOrDefault(e => e.Id == id);
+        Event eventById = _events.FirstOrDefault(e => e.Id == id) ??
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+
+        return eventById;
     }
 
     public Event AddEvent(Event newEvent)
     {
+        if (newEvent.EndAt <= newEvent.StartAt)
+            throw new ArgumentException("Дата окончания события должна быть позже даты начала");
+
         newEvent.Id = _events.Any() ? _events.Max(e => e.Id) + 1 : 1;
-        
+
         _events.Add(newEvent);
+
         return newEvent;
     }
 
-    public bool UpdateEvent(int id, Event updatedEvent)
+    public void UpdateEvent(int id, Event updatedEvent)
     {
-        int index = _events.FindIndex(e => e.Id == id);
-        if (index == -1)
-            return false;
+        int index = FindEventIndex(id);
+
+        if (updatedEvent.EndAt <= updatedEvent.StartAt)
+            throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
         _events[index] = updatedEvent;
-        return true;
     }
 
-    public bool RemoveEvent(int id)
+    public void RemoveEvent(int id)
     {
-        return _events.RemoveAll(e => e.Id == id) > 0;
+        int index = FindEventIndex(id);
+
+        _events.RemoveAt(index);
     }
 }

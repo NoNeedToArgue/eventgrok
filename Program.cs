@@ -1,4 +1,5 @@
 using EventGrok.Services;
+using EventGrok.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddSingleton<IEventService, EventService>();
 
 var app = builder.Build();
+
+app.UseExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {
