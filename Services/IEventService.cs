@@ -4,7 +4,12 @@ namespace EventGrok.Services;
 
 public interface IEventService
 {
-    List<Event> GetEvents(string? title, DateTime? from, DateTime? to);
+    PaginatedResultDto<Event> GetEvents(
+        string? title, 
+        DateTime? from, 
+        DateTime? to, 
+        int page = 1, 
+        int pageSize = 10);
     
     Event GetEventById(int id);
     

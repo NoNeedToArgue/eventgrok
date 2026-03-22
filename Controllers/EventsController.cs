@@ -9,9 +9,14 @@ namespace EventGrok.Controllers;
 public class EventsController(IEventService eventService) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<List<Event>> GetEvents(string? title, DateTime? from, DateTime? to)
+    public ActionResult<PaginatedResultDto<Event>> GetEvents(
+        string? title, 
+        DateTime? from, 
+        DateTime? to, 
+        int page = 1, 
+        int pageSize = 10)
     {
-        return eventService.GetEvents(title, from, to);
+        return eventService.GetEvents(title, from, to, page, pageSize);
     }
 
     [HttpGet("{id}")]

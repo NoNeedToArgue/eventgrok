@@ -15,14 +15,27 @@ public class EventService : IEventService
         return index;
     }
 
-    public List<Event> GetEvents(string? title, DateTime? from, DateTime? to)
+    public PaginatedResultDto<Event> GetEvents(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
     {
-        List<Event> events = [.. _events
+        List<Event> filteredEvents = [.. _events
             .Where(e => title is null || e.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
             .Where(e => from is null || e.StartAt >= from)
             .Where(e => to is null || e.EndAt <= to)];
 
-        return events;
+        int totalCount = filteredEvents.Count;
+        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        List<Event> events = [.. filteredEvents
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)];
+
+        return new PaginatedResultDto<Event>(
+            events,
+            totalCount,
+            page,
+            pageSize,
+            totalPages
+        );
     }
 
     public Event GetEventById(int id)
