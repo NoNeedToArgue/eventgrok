@@ -4,7 +4,7 @@ namespace EventGrok.Services;
 
 public interface IEventService
 {
-    List<Event> GetEvents();
+    List<Event> GetEvents(string? title, DateTime? from, DateTime? to);
     
     Event GetEventById(int id);
     

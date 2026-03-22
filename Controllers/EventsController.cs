@@ -9,9 +9,9 @@ namespace EventGrok.Controllers;
 public class EventsController(IEventService eventService) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<List<Event>> GetEvents()
+    public ActionResult<List<Event>> GetEvents(string? title, DateTime? from, DateTime? to)
     {
-        return eventService.GetEvents();
+        return eventService.GetEvents(title, from, to);
     }
 
     [HttpGet("{id}")]

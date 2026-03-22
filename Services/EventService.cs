@@ -15,9 +15,14 @@ public class EventService : IEventService
         return index;
     }
 
-    public List<Event> GetEvents()
+    public List<Event> GetEvents(string? title, DateTime? from, DateTime? to)
     {
-        return [.. _events];
+        List<Event> events = [.. _events
+            .Where(e => title is null || e.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
+            .Where(e => from is null || e.StartAt >= from)
+            .Where(e => to is null || e.EndAt <= to)];
+
+        return events;
     }
 
     public Event GetEventById(int id)
