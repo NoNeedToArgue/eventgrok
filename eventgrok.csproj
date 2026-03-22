@@ -11,4 +11,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="EventGrok.Tests\**" />
+    <EmbeddedResource Remove="EventGrok.Tests\**" />
+    <None Remove="EventGrok.Tests\**" />
+  </ItemGroup>
+
 </Project>
