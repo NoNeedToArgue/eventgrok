@@ -4,13 +4,18 @@ namespace EventGrok.Services;
 
 public interface IEventService
 {
-    List<Event> GetEvents();
+    PaginatedResultDto<Event> GetEvents(
+        string? title, 
+        DateTime? from, 
+        DateTime? to, 
+        int page = 1, 
+        int pageSize = 10);
     
-    Event? GetEventById(int id);
+    Event GetEventById(int id);
     
     Event AddEvent(Event newEvent);
     
-    bool UpdateEvent(int id, Event updatedEvent);
+    void UpdateEvent(int id, Event updatedEvent);
     
-    bool RemoveEvent(int id);
+    void RemoveEvent(int id);
 }

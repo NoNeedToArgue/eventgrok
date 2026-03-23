@@ -6,36 +6,72 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = [];
 
-    public List<Event> GetEvents()
+    private int FindEventIndex(int id)
     {
-        return [.. _events];
+        int index = _events.FindIndex(e => e.Id == id);
+        if (index == -1)
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+
+        return index;
     }
 
-    public Event? GetEventById(int id)
+    public PaginatedResultDto<Event> GetEvents(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
     {
-        return _events.FirstOrDefault(e => e.Id == id);
+        List<Event> filteredEvents = [.. _events
+            .Where(e => title is null || e.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
+            .Where(e => from is null || e.StartAt >= from)
+            .Where(e => to is null || e.EndAt <= to)];
+
+        int totalCount = filteredEvents.Count;
+        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        List<Event> events = [.. filteredEvents
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)];
+
+        return new PaginatedResultDto<Event>(
+            events,
+            totalCount,
+            page,
+            pageSize,
+            totalPages
+        );
+    }
+
+    public Event GetEventById(int id)
+    {
+        Event eventById = _events.FirstOrDefault(e => e.Id == id) ??
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+
+        return eventById;
     }
 
     public Event AddEvent(Event newEvent)
     {
+        if (newEvent.EndAt <= newEvent.StartAt)
+            throw new ArgumentException("Дата окончания события должна быть позже даты начала");
+
         newEvent.Id = _events.Any() ? _events.Max(e => e.Id) + 1 : 1;
-        
+
         _events.Add(newEvent);
+
         return newEvent;
     }
 
-    public bool UpdateEvent(int id, Event updatedEvent)
+    public void UpdateEvent(int id, Event updatedEvent)
     {
-        int index = _events.FindIndex(e => e.Id == id);
-        if (index == -1)
-            return false;
+        int index = FindEventIndex(id);
+
+        if (updatedEvent.EndAt <= updatedEvent.StartAt)
+            throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
         _events[index] = updatedEvent;
-        return true;
     }
 
-    public bool RemoveEvent(int id)
+    public void RemoveEvent(int id)
     {
-        return _events.RemoveAll(e => e.Id == id) > 0;
+        int index = FindEventIndex(id);
+
+        _events.RemoveAt(index);
     }
 }
