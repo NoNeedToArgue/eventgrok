@@ -6,7 +6,7 @@ namespace EventGrok.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventsController(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     [HttpGet]
     public ActionResult<PaginatedResultDto<Event>> GetEvents(
@@ -52,6 +52,16 @@ public class EventsController(IEventService eventService) : ControllerBase
         eventService.RemoveEvent(id);
 
         return NoContent();
+    }
+
+    [HttpPost("{id:guid}/book")]
+    public async Task<ActionResult<Booking>> BookEvent(Guid id)
+    {
+        Booking booking = await bookingService.CreateBookingAsync(id);
+
+        string location = $"/bookings/{booking.Id}";
+        
+        return Accepted(location, booking);
     }
 
     private static Event MapToEvent(CreateEventDto dto)
