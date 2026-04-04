@@ -6,7 +6,7 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = [];
 
-    private int FindEventIndex(int id)
+    private int FindEventIndex(Guid id)
     {
         int index = _events.FindIndex(e => e.Id == id);
         if (index == -1)
@@ -38,7 +38,7 @@ public class EventService : IEventService
         );
     }
 
-    public Event GetEventById(int id)
+    public Event GetEventById(Guid id)
     {
         Event eventById = _events.FirstOrDefault(e => e.Id == id) ??
             throw new KeyNotFoundException($"Событие с id = {id} не найдено");
@@ -51,14 +51,14 @@ public class EventService : IEventService
         if (newEvent.EndAt <= newEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
-        newEvent.Id = _events.Any() ? _events.Max(e => e.Id) + 1 : 1;
+        newEvent.Id = Guid.NewGuid();
 
         _events.Add(newEvent);
 
         return newEvent;
     }
 
-    public void UpdateEvent(int id, Event updatedEvent)
+    public void UpdateEvent(Guid id, Event updatedEvent)
     {
         int index = FindEventIndex(id);
 
@@ -68,7 +68,7 @@ public class EventService : IEventService
         _events[index] = updatedEvent;
     }
 
-    public void RemoveEvent(int id)
+    public void RemoveEvent(Guid id)
     {
         int index = FindEventIndex(id);
 

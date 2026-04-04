@@ -33,7 +33,7 @@ public class EventServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotEqual(0, result.Id);
+        Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Equal("Концерт", result.Title);
     }
 
@@ -211,7 +211,7 @@ public class EventServiceTests
     public void GetEventById_InvalidId_ThrowsKeyNotFoundException()
     {
         // Act & Assert
-        Assert.Throws<KeyNotFoundException>(() => _service.GetEventById(999));
+        Assert.Throws<KeyNotFoundException>(() => _service.GetEventById(Guid.NewGuid()));
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public class EventServiceTests
         Event updatedEvent = CreateValidEvent();
 
         // Act & Assert
-        Assert.Throws<KeyNotFoundException>(() => _service.UpdateEvent(999, updatedEvent));
+        Assert.Throws<KeyNotFoundException>(() => _service.UpdateEvent(Guid.NewGuid(), updatedEvent));
     }
 
     [Fact]

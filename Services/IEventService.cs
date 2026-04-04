@@ -11,11 +11,11 @@ public interface IEventService
         int page = 1, 
         int pageSize = 10);
     
-    Event GetEventById(int id);
+    Event GetEventById(Guid id);
     
     Event AddEvent(Event newEvent);
     
-    void UpdateEvent(int id, Event updatedEvent);
+    void UpdateEvent(Guid id, Event updatedEvent);
     
-    void RemoveEvent(int id);
+    void RemoveEvent(Guid id);
 }
