@@ -31,4 +31,14 @@ public class BookingService(IEventService eventService) : IBookingService
 
         return _bookings[bookingId];
     }
+
+    public async Task<IEnumerable<Booking>> GetPendingBookingsAsync()
+    {
+        return [.. _bookings.Values.Where(b => b.Status == BookingStatus.Pending)];
+    }
+
+    public async Task UpdateBookingAsync(Booking booking)
+    {
+        _bookings[booking.Id] = booking;
+    }
 }

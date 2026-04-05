@@ -26,6 +26,8 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddSingleton<IEventService, EventService>();
 builder.Services.AddSingleton<IBookingService, BookingService>();
 
+builder.Services.AddHostedService<BookingProcessingBackgroundService>();
+
 var app = builder.Build();
 
 app.UseExceptionHandling();
