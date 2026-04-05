@@ -18,7 +18,7 @@ public class BookingService(IEventService eventService) : IBookingService
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
-        
+
         _bookings[booking.Id] = booking;
 
         return booking;
@@ -32,10 +32,8 @@ public class BookingService(IEventService eventService) : IBookingService
         return _bookings[bookingId];
     }
 
-    public async Task<IEnumerable<Booking>> GetPendingBookingsAsync()
-    {
-        return [.. _bookings.Values.Where(b => b.Status == BookingStatus.Pending)];
-    }
+    public async Task<IEnumerable<Booking>> GetPendingBookingsAsync() =>
+        [.. _bookings.Values.Where(b => b.Status == BookingStatus.Pending)];
 
     public async Task UpdateBookingAsync(Booking booking)
     {
