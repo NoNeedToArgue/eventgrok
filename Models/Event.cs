@@ -2,7 +2,7 @@ namespace EventGrok.Models;
 
 public class Event
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     public required string Title { get; set; }
 

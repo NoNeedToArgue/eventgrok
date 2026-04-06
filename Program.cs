@@ -1,9 +1,14 @@
 using EventGrok.Services;
 using EventGrok.Extensions;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(
+        new JsonStringEnumConverter());
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -19,6 +24,9 @@ if (builder.Environment.IsDevelopment())
 
 // Singleton на время In-Memory хранилища, чтобы сохранялись изменения после запросов (вариант: Scoped если список захардкодить)
 builder.Services.AddSingleton<IEventService, EventService>();
+builder.Services.AddSingleton<IBookingService, BookingService>();
+
+builder.Services.AddHostedService<BookingProcessingBackgroundService>();
 
 var app = builder.Build();
 

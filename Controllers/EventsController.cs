@@ -6,7 +6,7 @@ namespace EventGrok.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventsController(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     [HttpGet]
     public ActionResult<PaginatedResultDto<Event>> GetEvents(
@@ -19,8 +19,8 @@ public class EventsController(IEventService eventService) : ControllerBase
         return eventService.GetEvents(title, from, to, page, pageSize);
     }
 
-    [HttpGet("{id}")]
-    public ActionResult<Event> GetEventById(int id)
+    [HttpGet("{id:guid}")]
+    public ActionResult<Event> GetEventById(Guid id)
     {
         return eventService.GetEventById(id);
     }
@@ -35,8 +35,8 @@ public class EventsController(IEventService eventService) : ControllerBase
         return CreatedAtAction(nameof(GetEventById), new { id = createdEvent.Id }, createdEvent);
     }
 
-    [HttpPut("{id}")]
-    public ActionResult UpdateEvent(int id, [FromBody] CreateEventDto dto)
+    [HttpPut("{id:guid}")]
+    public ActionResult UpdateEvent(Guid id, [FromBody] CreateEventDto dto)
     {
         Event eventToUpdate = MapToEvent(dto);
         eventToUpdate.Id = id;
@@ -46,15 +46,25 @@ public class EventsController(IEventService eventService) : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public ActionResult DeleteEvent(int id)
+    [HttpDelete("{id:guid}")]
+    public ActionResult DeleteEvent(Guid id)
     {
         eventService.RemoveEvent(id);
 
         return NoContent();
     }
 
-    private Event MapToEvent(CreateEventDto dto)
+    [HttpPost("{id:guid}/book")]
+    public async Task<ActionResult<Booking>> BookEvent(Guid id)
+    {
+        Booking booking = await bookingService.CreateBookingAsync(id);
+
+        string location = $"/bookings/{booking.Id}";
+        
+        return Accepted(location, booking);
+    }
+
+    private static Event MapToEvent(CreateEventDto dto)
     {
         return new Event
         {

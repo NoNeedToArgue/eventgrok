@@ -26,6 +26,8 @@ dotnet test EventGrok.Tests/EventGrok.Tests.csproj
 | `POST` | `/events` | Создание нового события |
 | `PUT` | `/events/{id}` | Обновление события |
 | `DELETE` | `/events/{id}` | Удаление события |
+| `POST` | `/events/{id}/book` | Создание брони для события |
+| `GET` | `/bookings/{id}` | Получение брони по ID |
 
 ### Параметры фильтрации для `GET /events`
 
@@ -59,6 +61,40 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
   "type": "https://httpstatuses.com/404",
   "title": "Not Found",
   "status": 404,
-  "detail": "Событие с id = 999 не найдено"
+  "detail": "Событие с id = {guid} не найдено"
 }
 ```
+
+### Модель Booking
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `Id` | Guid | Уникальный идентификатор брони |
+| `EventId` | Guid | ID события |
+| `Status` | BookingStatus | Текущий статус |
+| `CreatedAt` | DateTime | Дата создания |
+| `ProcessedAt` | DateTime? | Дата обработки (заполняется после обработки) |
+
+**Статусы (BookingStatus)**
+
+| Статус | Описание |
+| --- | --- |
+| `Pending` | Ожидает обработки |
+| `Confirmed` | Подтверждена |
+| `Rejected` | Отклонена |
+
+### Фоновая обработка
+
+Бронирования со статусом `Pending` автоматически обрабатываются фоновым сервисом:
+- Опрос каждые 2 секунды
+- Имитация внешней проверки (2 секунды)
+- Статус меняется на `Confirmed`, заполняется `ProcessedAt`
+
+**Сценарий проверки фоновой обработки:**
+
+1. Создайте событие: POST /events {body} → 201 Created, Location: /events/{eventGuid}
+2. Создайте 5-10 броней подряд: POST /events/{eventGuid}/book
+3. Скопируйте ID последней брони из ответа 202
+4. GET /bookings/{bookingGuid} → можно успеть увидеть статус: Pending
+5. Подождите несколько секунд
+6. GET /bookings/{bookingGuid} → статус: Confirmed, ProcessedAt: заполнено
