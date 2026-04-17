@@ -12,13 +12,8 @@ public class EventServiceTests
         _service = new EventService();
     }
 
-    private static Event CreateValidEvent(string title = "Test Event") => new()
-    {
-        Title = title,
-        Description = "Description",
-        StartAt = DateTime.UtcNow.AddHours(1),
-        EndAt = DateTime.UtcNow.AddHours(2)
-    };
+    private static Event CreateValidEvent(string title = "Test Event") =>
+        Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
     [Fact]
     [Trait("Category", "AddEvent")]
@@ -43,12 +38,12 @@ public class EventServiceTests
     public void AddEvent_InvalidDates_ThrowsArgumentException()
     {
         // Arrange
-        var newEvent = new Event
-        {
-            Title = "Концерт с некорректной датой",
-            StartAt = DateTime.UtcNow.AddHours(2),
-            EndAt = DateTime.UtcNow.AddHours(1)
-        };
+        var newEvent = Event.Create(
+            "Концерт с некорректной датой",
+            "Description",
+            DateTime.UtcNow.AddHours(2),
+            DateTime.UtcNow.AddHours(1)
+        );
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => _service.AddEvent(newEvent));
@@ -254,7 +249,7 @@ public class EventServiceTests
         Event updatedEvent = CreateValidEvent("Плохой концерт");
         updatedEvent.Id = oldEvent.Id;
         updatedEvent.EndAt = updatedEvent.StartAt.AddHours(-1);
-        
+
         // Act & Assert
         Assert.Throws<ArgumentException>(() => _service.UpdateEvent(oldEvent.Id, updatedEvent));
     }

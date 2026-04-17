@@ -9,30 +9,45 @@ namespace EventGrok.Controllers;
 public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<PaginatedResultDto<Event>> GetEvents(
-        string? title, 
-        DateTime? from, 
-        DateTime? to, 
-        int page = 1, 
+    public ActionResult<PaginatedResultDto<EventInfoDto>> GetEvents(
+        string? title,
+        DateTime? from,
+        DateTime? to,
+        int page = 1,
         int pageSize = 10)
     {
-        return eventService.GetEvents(title, from, to, page, pageSize);
+        PaginatedResultDto<Event> serviceResult = eventService.GetEvents(title, from, to, page, pageSize);
+
+        List<EventInfoDto> mappedItems = [.. serviceResult.Items.Select(MapToInfoDto)];
+
+        return new PaginatedResultDto<EventInfoDto>(
+            mappedItems,
+            serviceResult.TotalCount,
+            serviceResult.Page,
+            serviceResult.PageSize,
+            serviceResult.TotalPages
+        );
     }
 
     [HttpGet("{id:guid}")]
-    public ActionResult<Event> GetEventById(Guid id)
+    public ActionResult<EventInfoDto> GetEventById(Guid id)
     {
-        return eventService.GetEventById(id);
+        return MapToInfoDto(eventService.GetEventById(id));
     }
 
     [HttpPost]
-    public ActionResult<Event> CreateEvent([FromBody] CreateEventDto dto)
+    public ActionResult<EventInfoDto> CreateEvent([FromBody] CreateEventDto dto)
     {
-        Event newEvent = MapToEvent(dto);
-        
+        Event newEvent = Event.Create(
+            dto.Title,
+            dto.Description,
+            dto.StartAt,
+            dto.EndAt
+        );
+
         Event createdEvent = eventService.AddEvent(newEvent);
 
-        return CreatedAtAction(nameof(GetEventById), new { id = createdEvent.Id }, createdEvent);
+        return CreatedAtAction(nameof(GetEventById), new { id = createdEvent.Id }, MapToInfoDto(createdEvent));
     }
 
     [HttpPut("{id:guid}")]
@@ -60,18 +75,23 @@ public class EventsController(IEventService eventService, IBookingService bookin
         Booking booking = await bookingService.CreateBookingAsync(id);
 
         string location = $"/bookings/{booking.Id}";
-        
+
         return Accepted(location, booking);
     }
 
-    private static Event MapToEvent(CreateEventDto dto)
+    private static Event MapToEvent(CreateEventDto dto) => new()
     {
-        return new Event
-        {
-            Title = dto.Title,
-            Description = dto.Description,
-            StartAt = dto.StartAt,
-            EndAt = dto.EndAt
-        };
-    }
+        Title = dto.Title,
+        Description = dto.Description,
+        StartAt = dto.StartAt,
+        EndAt = dto.EndAt
+    };
+
+    private static EventInfoDto MapToInfoDto(Event e) => new(
+        e.Id,
+        e.Title,
+        e.Description,
+        e.StartAt,
+        e.EndAt
+    );
 }

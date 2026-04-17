@@ -51,8 +51,6 @@ public class EventService : IEventService
         if (newEvent.EndAt <= newEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
-        newEvent.Id = Guid.NewGuid();
-
         _events.Add(newEvent);
 
         return newEvent;
