@@ -42,7 +42,8 @@ public class EventsController(IEventService eventService, IBookingService bookin
             dto.Title,
             dto.Description,
             dto.StartAt,
-            dto.EndAt
+            dto.EndAt,
+            dto.TotalSeats
         );
 
         Event createdEvent = eventService.AddEvent(newEvent);
@@ -53,8 +54,11 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [HttpPut("{id:guid}")]
     public ActionResult UpdateEvent(Guid id, [FromBody] CreateEventDto dto)
     {
+        Event existingEvent = eventService.GetEventById(id);
+
         Event eventToUpdate = MapToEvent(dto);
         eventToUpdate.Id = id;
+        eventToUpdate.AvailableSeats = existingEvent.AvailableSeats;
 
         eventService.UpdateEvent(id, eventToUpdate);
 
@@ -84,7 +88,8 @@ public class EventsController(IEventService eventService, IBookingService bookin
         Title = dto.Title,
         Description = dto.Description,
         StartAt = dto.StartAt,
-        EndAt = dto.EndAt
+        EndAt = dto.EndAt,
+        TotalSeats = dto.TotalSeats
     };
 
     private static EventInfoDto MapToInfoDto(Event e) => new(
@@ -92,6 +97,8 @@ public class EventsController(IEventService eventService, IBookingService bookin
         e.Title,
         e.Description,
         e.StartAt,
-        e.EndAt
+        e.EndAt,
+        e.TotalSeats,
+        e.AvailableSeats
     );
 }

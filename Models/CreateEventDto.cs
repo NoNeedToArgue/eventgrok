@@ -13,4 +13,7 @@ public class CreateEventDto
     public required DateTime StartAt { get; set; }
 
     public required DateTime EndAt { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Количество мест должно быть больше нуля")]
+    public required int TotalSeats { get; set; }
 }

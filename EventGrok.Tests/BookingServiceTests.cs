@@ -14,13 +14,8 @@ public class BookingServiceTests
         _bookingService = new BookingService(_eventService);
     }
 
-    private static Event CreateValidEvent(string title = "Test Event") => new()
-    {
-        Title = title,
-        Description = "Description",
-        StartAt = DateTime.UtcNow.AddHours(1),
-        EndAt = DateTime.UtcNow.AddHours(2)
-    };
+    private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
+        Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
 
     [Fact]
     [Trait("Category", "CreateBookingAsync")]

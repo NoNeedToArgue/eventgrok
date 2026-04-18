@@ -12,8 +12,8 @@ public class EventServiceTests
         _service = new EventService();
     }
 
-    private static Event CreateValidEvent(string title = "Test Event") =>
-        Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
+    private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
+        Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
 
     [Fact]
     [Trait("Category", "AddEvent")]
@@ -42,7 +42,8 @@ public class EventServiceTests
             "Концерт с некорректной датой",
             "Description",
             DateTime.UtcNow.AddHours(2),
-            DateTime.UtcNow.AddHours(1)
+            DateTime.UtcNow.AddHours(1),
+            100
         );
 
         // Act & Assert
