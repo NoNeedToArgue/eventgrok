@@ -2,8 +2,10 @@ using EventGrok.Models;
 
 namespace EventGrok.Services;
 
-public class BookingProcessingBackgroundService(IBookingService bookingService) : BackgroundService
+public class BookingProcessingBackgroundService(IBookingService bookingService, IEventService eventService) : BackgroundService
 {
+    private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -12,15 +14,8 @@ public class BookingProcessingBackgroundService(IBookingService bookingService) 
             {
                 IEnumerable<Booking> bookings = await bookingService.GetPendingBookingsAsync();
 
-                foreach (Booking booking in bookings)
-                {
-                    await Task.Delay(2000, stoppingToken);
-                    
-                    booking.Status = BookingStatus.Confirmed;
-                    booking.ProcessedAt = DateTime.UtcNow;
-
-                    await bookingService.UpdateBookingAsync(booking);
-                }
+                IEnumerable<Task> tasks = bookings.Select(booking => ProcessBookingAsync(booking, stoppingToken));
+                await Task.WhenAll(tasks);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -28,6 +23,48 @@ public class BookingProcessingBackgroundService(IBookingService bookingService) 
             }
 
             await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+        }
+    }
+
+    private async Task ProcessBookingAsync(Booking booking, CancellationToken stoppingToken)
+    {
+        await Task.Delay(2000, stoppingToken);
+
+        await _processingSemaphore.WaitAsync();
+        try
+        {
+            Action<Booking> applyStatus;
+            
+            try
+            {
+                Event eventToBook = eventService.GetEventById(booking.EventId);
+                applyStatus = booking => booking.Confirm();
+            }
+            catch (KeyNotFoundException)
+            {
+                applyStatus = booking => booking.Reject();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                try
+                {
+                    Event eventToBook = eventService.GetEventById(booking.EventId);
+                    eventToBook.ReleaseSeats();
+                }
+                catch
+                {
+                    // Событие удалено между попытками - нечего освобождать
+                }
+                
+                applyStatus = booking => booking.Reject();
+            }
+
+            applyStatus(booking);
+            await bookingService.UpdateBookingAsync(booking);
+        }
+        finally
+        {
+            _processingSemaphore.Release();
         }
     }
 }
