@@ -269,4 +269,36 @@ public class EventServiceTests
         // Assert
         Assert.Throws<KeyNotFoundException>(() => _service.GetEventById(doomedEvent.Id));
     }
+
+    [Fact]
+    [Trait("Category", "Event.ReleaseSeats")]
+    public void ReleaseSeats_IncreasesAvailableSeats()
+    {
+        // Arrange
+        Event testEvent = CreateValidEvent("Концерт", totalSeats: 2);
+        _service.AddEvent(testEvent);
+
+        testEvent.AvailableSeats = 1;
+
+        // Act
+        testEvent.ReleaseSeats(1);
+
+        // Assert
+        Assert.Equal(2, testEvent.AvailableSeats);
+    }
+
+    [Fact]
+    [Trait("Category", "Event.ReleaseSeats")]
+    public void ReleaseSeats_DoesNotExceedTotalSeats()
+    {
+        // Arrange
+        Event testEvent = CreateValidEvent("Концерт", totalSeats: 3);
+        _service.AddEvent(testEvent);
+
+        // Act
+        testEvent.ReleaseSeats(10);
+
+        // Assert
+        Assert.Equal(3, testEvent.AvailableSeats);
+    }
 }
