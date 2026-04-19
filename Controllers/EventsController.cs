@@ -74,6 +74,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
     }
 
     [HttpPost("{id:guid}/book")]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Booking>> BookEvent(Guid id)
     {
         Booking booking = await bookingService.CreateBookingAsync(id);
