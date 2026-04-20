@@ -12,13 +12,8 @@ public class EventServiceTests
         _service = new EventService();
     }
 
-    private static Event CreateValidEvent(string title = "Test Event") => new()
-    {
-        Title = title,
-        Description = "Description",
-        StartAt = DateTime.UtcNow.AddHours(1),
-        EndAt = DateTime.UtcNow.AddHours(2)
-    };
+    private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
+        Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
 
     [Fact]
     [Trait("Category", "AddEvent")]
@@ -43,12 +38,13 @@ public class EventServiceTests
     public void AddEvent_InvalidDates_ThrowsArgumentException()
     {
         // Arrange
-        var newEvent = new Event
-        {
-            Title = "Концерт с некорректной датой",
-            StartAt = DateTime.UtcNow.AddHours(2),
-            EndAt = DateTime.UtcNow.AddHours(1)
-        };
+        var newEvent = Event.Create(
+            "Концерт с некорректной датой",
+            "Description",
+            DateTime.UtcNow.AddHours(2),
+            DateTime.UtcNow.AddHours(1),
+            100
+        );
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => _service.AddEvent(newEvent));
@@ -254,7 +250,7 @@ public class EventServiceTests
         Event updatedEvent = CreateValidEvent("Плохой концерт");
         updatedEvent.Id = oldEvent.Id;
         updatedEvent.EndAt = updatedEvent.StartAt.AddHours(-1);
-        
+
         // Act & Assert
         Assert.Throws<ArgumentException>(() => _service.UpdateEvent(oldEvent.Id, updatedEvent));
     }
@@ -272,5 +268,37 @@ public class EventServiceTests
 
         // Assert
         Assert.Throws<KeyNotFoundException>(() => _service.GetEventById(doomedEvent.Id));
+    }
+
+    [Fact]
+    [Trait("Category", "Event.ReleaseSeats")]
+    public void ReleaseSeats_IncreasesAvailableSeats()
+    {
+        // Arrange
+        Event testEvent = CreateValidEvent("Концерт", totalSeats: 2);
+        _service.AddEvent(testEvent);
+
+        testEvent.AvailableSeats = 1;
+
+        // Act
+        testEvent.ReleaseSeats(1);
+
+        // Assert
+        Assert.Equal(2, testEvent.AvailableSeats);
+    }
+
+    [Fact]
+    [Trait("Category", "Event.ReleaseSeats")]
+    public void ReleaseSeats_DoesNotExceedTotalSeats()
+    {
+        // Arrange
+        Event testEvent = CreateValidEvent("Концерт", totalSeats: 3);
+        _service.AddEvent(testEvent);
+
+        // Act
+        testEvent.ReleaseSeats(10);
+
+        // Assert
+        Assert.Equal(3, testEvent.AvailableSeats);
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using EventGrok.Exceptions;
 using EventGrok.Models;
 
 namespace EventGrok.Services;
@@ -6,20 +7,29 @@ namespace EventGrok.Services;
 public class BookingService(IEventService eventService) : IBookingService
 {
     private readonly ConcurrentDictionary<Guid, Booking> _bookings = [];
+    private readonly object _bookingLock = new();
 
     public async Task<Booking> CreateBookingAsync(Guid eventId)
     {
-        eventService.GetEventById(eventId);
+        Booking booking;
 
-        Booking booking = new()
+        lock (_bookingLock)
         {
-            Id = Guid.NewGuid(),
-            EventId = eventId,
-            Status = BookingStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
+            Event eventToBook = eventService.GetEventById(eventId);
 
-        _bookings[booking.Id] = booking;
+            if (!eventToBook.TryReserveSeats(1))
+                throw new NoAvailableSeatsException("Нет доступных мест на это событие");
+
+            booking = new Booking
+            {
+                Id = Guid.NewGuid(),
+                EventId = eventId,
+                Status = BookingStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _bookings[booking.Id] = booking;
+        }
 
         return booking;
     }

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using EventGrok.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventGrok.Middlewares;
@@ -28,7 +30,9 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         (string title, int status, string detail) = ex switch
         {
             ArgumentException ae => ("Bad Request", 400, ae.Message),
+            ValidationException ve => ("Bad Request", 400, ve.Message),
             KeyNotFoundException nf => ("Not Found", 404, nf.Message),
+            NoAvailableSeatsException nase => ("Conflict", 409, nase.Message),
             _ => ("Internal Server Error", 500, "An unexpected error occurred")
         };
 
