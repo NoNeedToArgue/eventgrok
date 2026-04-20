@@ -65,6 +65,18 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
 }
 ```
 
+### Модель Event
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `Id` | Guid | Уникальный идентификатор |
+| `Title` | string | Название события |
+| `Description` | string | Описание |
+| `StartAt` | DateTime | Дата начала |
+| `EndAt` | DateTime | Дата окончания |
+| `TotalSeats` | int | Общее количество мест (>0) |
+| `AvailableSeats` | int | Доступные места (при создании = TotalSeats) |
+
 ### Модель Booking
 
 | Поле | Тип | Описание |
@@ -98,3 +110,19 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
 4. GET /bookings/{bookingGuid} → можно успеть увидеть статус: Pending
 5. Подождите несколько секунд
 6. GET /bookings/{bookingGuid} → статус: Confirmed, ProcessedAt: заполнено
+
+### Синхронизация
+
+| Компонент | Примитив | Зачем |
+| --- | --- | --- |
+| `BookingService` | `lock` | Атомарная проверка мест + создание брони |
+| `BookingProcessingBackgroundService` | `SemaphoreSlim` | Асинхронная защита записи при параллельной обработке |
+
+**Защита от овербукинга:** 
+
+При одновременных запросах создаётся ровно столько броней, сколько доступно мест (`AvailableSeats`). Остальные получают `409 Conflict`. 
+
+Запустите из корневой папки:
+```bash
+dotnet test EventGrok.Tests/EventGrok.Tests.csproj --filter "Type=Concurrency"
+```
