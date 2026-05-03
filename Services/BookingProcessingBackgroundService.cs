@@ -30,7 +30,7 @@ public class BookingProcessingBackgroundService(IBookingService bookingService, 
     {
         await Task.Delay(2000, stoppingToken);
 
-        await _processingSemaphore.WaitAsync();
+        await _processingSemaphore.WaitAsync(stoppingToken);
         try
         {
             Action<Booking> applyStatus;
