@@ -1,6 +1,8 @@
 using EventGrok.Services;
 using EventGrok.Extensions;
 using System.Text.Json.Serialization;
+using EventGrok.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,13 +24,21 @@ if (builder.Environment.IsDevelopment())
     });
 }
 
-// Singleton на время In-Memory хранилища, чтобы сохранялись изменения после запросов (вариант: Scoped если список захардкодить)
-builder.Services.AddSingleton<IEventService, EventService>();
-builder.Services.AddSingleton<IBookingService, BookingService>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 builder.Services.AddHostedService<BookingProcessingBackgroundService>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+}
 
 app.UseExceptionHandling();
 

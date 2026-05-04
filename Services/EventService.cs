@@ -1,75 +1,80 @@
+using EventGrok.DataAccess;
 using EventGrok.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventGrok.Services;
 
-public class EventService : IEventService
+public class EventService(AppDbContext context) : IEventService
 {
-    private readonly List<Event> _events = [];
-
-    private int FindEventIndex(Guid id)
+    public async Task<PaginatedResultDto<Event>> GetEventsAsync(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
     {
-        int index = _events.FindIndex(e => e.Id == id);
-        if (index == -1)
-            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+        IQueryable<Event> query = context.Events.AsNoTracking();
 
-        return index;
-    }
+        if (title is not null)
+            query = query.Where(e => EF.Functions.ILike(e.Title, $"%{title}%"));
 
-    public PaginatedResultDto<Event> GetEvents(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
-    {
-        List<Event> filteredEvents = [.. _events
-            .Where(e => title is null || e.Title.Contains(title, StringComparison.OrdinalIgnoreCase))
-            .Where(e => from is null || e.StartAt >= from)
-            .Where(e => to is null || e.EndAt <= to)];
+        if (from is not null)
+            query = query.Where(e => e.StartAt >= from);
 
-        int totalCount = filteredEvents.Count;
+        if (to is not null)
+            query = query.Where(e => e.EndAt <= to);
+
+        int totalCount = await query.CountAsync();
         int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-        List<Event> events = [.. filteredEvents
+        List<Event> events = await query
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)];
+            .Take(pageSize)
+            .ToListAsync();
 
-        return new PaginatedResultDto<Event>(
-            events,
-            totalCount,
-            page,
-            pageSize,
-            totalPages
-        );
+        return new PaginatedResultDto<Event>(events, totalCount, page, pageSize, totalPages);
     }
 
-    public Event GetEventById(Guid id)
+    public async Task<Event> GetEventByIdAsync(Guid id)
     {
-        Event eventById = _events.FirstOrDefault(e => e.Id == id) ??
+        Event eventById = await context.Events
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id) ??
             throw new KeyNotFoundException($"Событие с id = {id} не найдено");
 
         return eventById;
     }
 
-    public Event AddEvent(Event newEvent)
+    public async Task<Event> AddEventAsync(Event newEvent)
     {
         if (newEvent.EndAt <= newEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
-        _events.Add(newEvent);
+        await context.Events.AddAsync(newEvent);
+        await context.SaveChangesAsync();
 
         return newEvent;
     }
 
-    public void UpdateEvent(Guid id, Event updatedEvent)
+    public async Task UpdateEventAsync(Guid id, Event updatedEvent)
     {
-        int index = FindEventIndex(id);
+        Event existingEvent = await context.Events.FindAsync(id) ??
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
 
         if (updatedEvent.EndAt <= updatedEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
-        _events[index] = updatedEvent;
+        existingEvent.Title = updatedEvent.Title;
+        existingEvent.Description = updatedEvent.Description;
+        existingEvent.StartAt = updatedEvent.StartAt;
+        existingEvent.EndAt = updatedEvent.EndAt;
+        existingEvent.TotalSeats = updatedEvent.TotalSeats;
+
+        await context.SaveChangesAsync();
     }
 
-    public void RemoveEvent(Guid id)
+    public async Task RemoveEventAsync(Guid id)
     {
-        int index = FindEventIndex(id);
+        Event existingEvent = await context.Events.FindAsync(id) ??
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
 
-        _events.RemoveAt(index);
+        context.Events.Remove(existingEvent);
+
+        await context.SaveChangesAsync();
     }
 }
