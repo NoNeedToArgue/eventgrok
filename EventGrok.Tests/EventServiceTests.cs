@@ -1,30 +1,47 @@
-﻿using EventGrok.Models;
+﻿using EventGrok.DataAccess;
+using EventGrok.Models;
 using EventGrok.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventGrok.Tests;
 
 public class EventServiceTests
 {
-    private readonly EventService _service;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly string _dbName;
 
     public EventServiceTests()
     {
-        _service = new EventService();
+        _dbName = Guid.NewGuid().ToString();
+
+        var services = new ServiceCollection();
+        
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(_dbName));
+        
+        services.AddScoped<IEventService, EventService>();
+        
+        _serviceProvider = services.BuildServiceProvider();
     }
 
+    private IEventService GetEventService() =>
+        _serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IEventService>();
+        
     private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
         Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
 
     [Fact]
     [Trait("Category", "AddEvent")]
     [Trait("Data", "Valid")]
-    public void AddEvent_ValidEvent_ReturnsEventWithId()
+    public async Task AddEvent_ValidEvent_ReturnsEventWithId()
     {
         // Arrange
+        IEventService service = GetEventService();
         Event newEvent = CreateValidEvent("Концерт");
 
         // Act
-        Event result = _service.AddEvent(newEvent);
+        Event result = await service.AddEventAsync(newEvent);
 
         // Assert
         Assert.NotNull(result);
@@ -35,9 +52,10 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "AddEvent")]
     [Trait("Data", "Invalid")]
-    public void AddEvent_InvalidDates_ThrowsArgumentException()
+    public async Task AddEvent_InvalidDates_ThrowsArgumentException()
     {
         // Arrange
+        IEventService service = GetEventService();
         var newEvent = Event.Create(
             "Концерт с некорректной датой",
             "Description",
@@ -47,15 +65,16 @@ public class EventServiceTests
         );
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _service.AddEvent(newEvent));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.AddEventAsync(newEvent));
     }
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_EmptyService_ReturnsEmptyResult()
+    public async Task GetEvents_EmptyService_ReturnsEmptyResult()
     {
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents(null, null, null);
+        IEventService service = GetEventService();
+        PaginatedResultDto<Event> result = await service.GetEventsAsync(null, null, null);
 
         // Assert
         Assert.NotNull(result);
@@ -65,14 +84,15 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_WithEvents_ReturnsAll()
+    public async Task GetEvents_WithEvents_ReturnsAll()
     {
         // Arrange
-        _service.AddEvent(CreateValidEvent("Концерт"));
-        _service.AddEvent(CreateValidEvent("Вернисаж"));
+        IEventService service = GetEventService();
+        await service.AddEventAsync(CreateValidEvent("Концерт"));
+        await service.AddEventAsync(CreateValidEvent("Вернисаж"));
 
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents(null, null, null);
+        PaginatedResultDto<Event> result = await service.GetEventsAsync(null, null, null);
 
         // Assert
         Assert.Equal(2, result.TotalCount);
@@ -81,14 +101,15 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_NoMatches_ReturnsEmptyResult()
+    public async Task GetEvents_NoMatches_ReturnsEmptyResult()
     {
         // Arrange
-        _service.AddEvent(CreateValidEvent("Концерт"));
-        _service.AddEvent(CreateValidEvent("Вернисаж"));
+        IEventService service = GetEventService();
+        await service.AddEventAsync(CreateValidEvent("Концерт"));
+        await service.AddEventAsync(CreateValidEvent("Вернисаж"));
 
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents("Аквадискотека", null, null);
+        PaginatedResultDto<Event> result = await service.GetEventsAsync("Аквадискотека", null, null);
 
         // Assert
         Assert.NotNull(result);
@@ -101,14 +122,15 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_FilterByTitleWithCaseInsensitive_ReturnsMatching()
+    public async Task GetEvents_FilterByTitleWithCaseInsensitive_ReturnsMatching()
     {
         // Arrange
-        _service.AddEvent(CreateValidEvent("Концерт"));
-        _service.AddEvent(CreateValidEvent("Вернисаж"));
+        IEventService service = GetEventService();
+        await service.AddEventAsync(CreateValidEvent("Концерт"));
+        await service.AddEventAsync(CreateValidEvent("Вернисаж"));
 
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents("концерт", null, null);
+        PaginatedResultDto<Event> result = await service.GetEventsAsync("концерт", null, null);
 
         // Assert
         Assert.Single(result.Items);
@@ -117,9 +139,11 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_FilterByDate_ReturnsMatching()
+    public async Task GetEvents_FilterByDate_ReturnsMatching()
     {
         // Arrange
+        IEventService service = GetEventService();
+
         Event pastEvent = CreateValidEvent("Концерт");
         pastEvent.StartAt = DateTime.UtcNow.AddHours(-10);
         pastEvent.EndAt = DateTime.UtcNow.AddHours(-9);
@@ -128,11 +152,11 @@ public class EventServiceTests
         futureEvent.StartAt = DateTime.UtcNow.AddHours(1);
         futureEvent.EndAt = DateTime.UtcNow.AddHours(2);
 
-        _service.AddEvent(pastEvent);
-        _service.AddEvent(futureEvent);
+        await service.AddEventAsync(pastEvent);
+        await service.AddEventAsync(futureEvent);
 
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents(null, DateTime.UtcNow, null);
+        PaginatedResultDto<Event> result = await service.GetEventsAsync(null, DateTime.UtcNow, null);
 
         // Assert
         Assert.Single(result.Items);
@@ -141,14 +165,15 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_WithPagination_ReturnsCorrectPage()
+    public async Task GetEvents_WithPagination_ReturnsCorrectPage()
     {
         // Arrange
+        IEventService service = GetEventService();
         for (int i = 1; i <= 25; i++)
-            _service.AddEvent(CreateValidEvent($"Событие {i}"));
+            await service.AddEventAsync(CreateValidEvent($"Событие {i}"));
 
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents(null, null, null, page: 2, pageSize: 10);
+        PaginatedResultDto<Event> result = await service.GetEventsAsync(null, null, null, page: 2, pageSize: 10);
 
         // Assert
         Assert.Equal(25, result.TotalCount);
@@ -159,9 +184,11 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "GetEvents")]
-    public void GetEvents_CombinedFilter_Works()
+    public async Task GetEvents_CombinedFilter_Works()
     {
         // Arrange
+        IEventService service = GetEventService();
+
         Event event1 = CreateValidEvent("Предстоящий концерт");
         event1.StartAt = DateTime.UtcNow.AddHours(1);
         event1.EndAt = DateTime.UtcNow.AddHours(2);
@@ -174,12 +201,12 @@ public class EventServiceTests
         event3.StartAt = DateTime.UtcNow.AddHours(1);
         event3.EndAt = DateTime.UtcNow.AddHours(2);
 
-        _service.AddEvent(event1);
-        _service.AddEvent(event2);
-        _service.AddEvent(event3);
+        await service.AddEventAsync(event1);
+        await service.AddEventAsync(event2);
+        await service.AddEventAsync(event3);
 
         // Act
-        PaginatedResultDto<Event> result = _service.GetEvents("концерт", DateTime.UtcNow, null);
+        PaginatedResultDto<Event> result = await service.GetEventsAsync("концерт", DateTime.UtcNow, null);
 
         // Assert
         Assert.Single(result.Items);
@@ -189,13 +216,14 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "GetEventById")]
     [Trait("Data", "Valid")]
-    public void GetEventById_ValidId_ReturnsEvent()
+    public async Task GetEventById_ValidId_ReturnsEvent()
     {
         // Arrange
-        Event uniqueEvent = _service.AddEvent(CreateValidEvent("Голая вечеринка"));
+        IEventService service = GetEventService();
+        Event uniqueEvent = await service.AddEventAsync(CreateValidEvent("Голая вечеринка"));
 
         // Act
-        Event result = _service.GetEventById(uniqueEvent.Id);
+        Event result = await service.GetEventByIdAsync(uniqueEvent.Id);
 
         // Assert
         Assert.Equal("Голая вечеринка", result.Title);
@@ -204,25 +232,29 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "GetEventById")]
     [Trait("Data", "Invalid")]
-    public void GetEventById_InvalidId_ThrowsKeyNotFoundException()
+    public async Task GetEventById_InvalidId_ThrowsKeyNotFoundException()
     {
+        // Arrange
+        IEventService service = GetEventService();
+
         // Act & Assert
-        Assert.Throws<KeyNotFoundException>(() => _service.GetEventById(Guid.NewGuid()));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetEventByIdAsync(Guid.NewGuid()));
     }
 
     [Fact]
     [Trait("Category", "UpdateEvent")]
     [Trait("Data", "Valid")]
-    public void UpdateEvent_ValidId_UpdatesEvent()
+    public async Task UpdateEvent_ValidId_UpdatesEvent()
     {
         // Arrange
-        Event oldEvent = _service.AddEvent(CreateValidEvent("Голая вечеринка"));
+        IEventService service = GetEventService();
+        Event oldEvent = await service.AddEventAsync(CreateValidEvent("Голая вечеринка"));
         Event updatedEvent = CreateValidEvent("Одетая вечеринка");
         updatedEvent.Id = oldEvent.Id;
 
         // Act
-        _service.UpdateEvent(oldEvent.Id, updatedEvent);
-        Event result = _service.GetEventById(oldEvent.Id);
+        await service.UpdateEventAsync(oldEvent.Id, updatedEvent);
+        Event result = await service.GetEventByIdAsync(oldEvent.Id);
 
         // Assert
         Assert.Equal("Одетая вечеринка", result.Title);
@@ -231,52 +263,56 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "UpdateEvent")]
     [Trait("Data", "Invalid")]
-    public void UpdateEvent_InvalidId_ThrowsKeyNotFoundException()
+    public async Task UpdateEvent_InvalidId_ThrowsKeyNotFoundException()
     {
         // Arrange
+        IEventService service = GetEventService();
         Event updatedEvent = CreateValidEvent();
 
         // Act & Assert
-        Assert.Throws<KeyNotFoundException>(() => _service.UpdateEvent(Guid.NewGuid(), updatedEvent));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UpdateEventAsync(Guid.NewGuid(), updatedEvent));
     }
 
     [Fact]
     [Trait("Category", "UpdateEvent")]
     [Trait("Data", "Invalid")]
-    public void UpdateEvent_InvalidDates_ThrowsArgumentException()
+    public async Task UpdateEvent_InvalidDates_ThrowsArgumentException()
     {
         // Arrange
-        Event oldEvent = _service.AddEvent(CreateValidEvent("Хороший концерт"));
+        IEventService service = GetEventService();
+        Event oldEvent = await service.AddEventAsync(CreateValidEvent("Хороший концерт"));
         Event updatedEvent = CreateValidEvent("Плохой концерт");
         updatedEvent.Id = oldEvent.Id;
         updatedEvent.EndAt = updatedEvent.StartAt.AddHours(-1);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _service.UpdateEvent(oldEvent.Id, updatedEvent));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateEventAsync(oldEvent.Id, updatedEvent));
     }
 
     [Fact]
     [Trait("Category", "RemoveEvent")]
     [Trait("Data", "Valid")]
-    public void RemoveEvent_ValidId_RemovesEvent()
+    public async Task RemoveEvent_ValidId_RemovesEvent()
     {
         // Arrange
-        Event doomedEvent = _service.AddEvent(CreateValidEvent());
+        IEventService service = GetEventService();
+        Event doomedEvent = await service.AddEventAsync(CreateValidEvent());
 
         // Act
-        _service.RemoveEvent(doomedEvent.Id);
+        await service.RemoveEventAsync(doomedEvent.Id);
 
         // Assert
-        Assert.Throws<KeyNotFoundException>(() => _service.GetEventById(doomedEvent.Id));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetEventByIdAsync(doomedEvent.Id));
     }
 
     [Fact]
     [Trait("Category", "Event.ReleaseSeats")]
-    public void ReleaseSeats_IncreasesAvailableSeats()
+    public async Task ReleaseSeats_IncreasesAvailableSeats()
     {
         // Arrange
+        IEventService service = GetEventService();
         Event testEvent = CreateValidEvent("Концерт", totalSeats: 2);
-        _service.AddEvent(testEvent);
+        await service.AddEventAsync(testEvent);
 
         testEvent.AvailableSeats = 1;
 
@@ -289,11 +325,12 @@ public class EventServiceTests
 
     [Fact]
     [Trait("Category", "Event.ReleaseSeats")]
-    public void ReleaseSeats_DoesNotExceedTotalSeats()
+    public async Task ReleaseSeats_DoesNotExceedTotalSeats()
     {
         // Arrange
+        IEventService service = GetEventService();
         Event testEvent = CreateValidEvent("Концерт", totalSeats: 3);
-        _service.AddEvent(testEvent);
+        await service.AddEventAsync(testEvent);
 
         // Act
         testEvent.ReleaseSeats(10);

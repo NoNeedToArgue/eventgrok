@@ -11,7 +11,7 @@ public class EventService(AppDbContext context) : IEventService
         IQueryable<Event> query = context.Events.AsNoTracking();
 
         if (title is not null)
-            query = query.Where(e => EF.Functions.ILike(e.Title, $"%{title}%"));
+            query = query.Where(e => e.Title.ToLower().Contains(title.ToLower()));
 
         if (from is not null)
             query = query.Where(e => e.StartAt >= from);
