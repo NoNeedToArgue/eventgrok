@@ -4,13 +4,26 @@ ASP.NET Core Web API для управления событиями.
 
 ## Запуск
 
-1. Запустите из корневой папки:
+1. Для работы приложения требуется PostgreSQL 15+. При использовании локальной БД настройте строку подключения в `appsettings.json`:
+   ```json
+   "DefaultConnection": "Host=localhost;Port=5432;Database=eventapi;Username=postgres;Password=postgres"
+   ```
+   Docker:
+   ```bash
+   docker compose up -d
+   ```
+   Схема БД создаётся автоматически при запуске через `EnsureCreated`.
+
+2. Запустите из корневой папки:
    ```bash
    dotnet run
    ```
-2. Откройте Swagger UI: http://localhost:5263/swagger
+   
+3. Откройте Swagger UI: http://localhost:5263/swagger
 
 ## Тесты
+
+Используется EF Core InMemory Provider.
 
 Запустите из корневой папки:
 ```bash
@@ -99,24 +112,9 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
 
 Бронирования со статусом `Pending` автоматически обрабатываются фоновым сервисом:
 - Опрос каждые 2 секунды
-- Имитация внешней проверки (2 секунды)
 - Статус меняется на `Confirmed`, заполняется `ProcessedAt`
 
-**Сценарий проверки фоновой обработки:**
-
-1. Создайте событие: POST /events {body} → 201 Created, Location: /events/{eventGuid}
-2. Создайте 5-10 броней подряд: POST /events/{eventGuid}/book
-3. Скопируйте ID последней брони из ответа 202
-4. GET /bookings/{bookingGuid} → можно успеть увидеть статус: Pending
-5. Подождите несколько секунд
-6. GET /bookings/{bookingGuid} → статус: Confirmed, ProcessedAt: заполнено
-
 ### Синхронизация
-
-| Компонент | Примитив | Зачем |
-| --- | --- | --- |
-| `BookingService` | `lock` | Атомарная проверка мест + создание брони |
-| `BookingProcessingBackgroundService` | `SemaphoreSlim` | Асинхронная защита записи при параллельной обработке |
 
 **Защита от овербукинга:** 
 
