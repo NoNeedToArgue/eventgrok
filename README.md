@@ -4,14 +4,13 @@ ASP.NET Core Web API для управления событиями.
 
 ## Запуск
 
-1. Для работы приложения требуется PostgreSQL 15+. При использовании локальной БД настройте строку подключения в `appsettings.json`:
-   ```json
-   "DefaultConnection": "Host=localhost;Port=5432;Database=eventapi;Username=postgres;Password=postgres"
-   ```
-   Docker:
+1. Для работы приложения требуется PostgreSQL. При использовании локальной БД настройте строку подключения в `appsettings.json`.
+
+   Docker. Запустите из корневой папки:
    ```bash
    docker compose up -d
    ```
+   
    Схема БД создаётся автоматически при запуске через `EnsureCreated`.
 
 2. Запустите из корневой папки:
