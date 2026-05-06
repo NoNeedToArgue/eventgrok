@@ -9,14 +9,14 @@ namespace EventGrok.Controllers;
 public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<PaginatedResultDto<EventInfoDto>> GetEvents(
+    public async Task<ActionResult<PaginatedResultDto<EventInfoDto>>> GetEvents(
         string? title,
         DateTime? from,
         DateTime? to,
         int page = 1,
         int pageSize = 10)
     {
-        PaginatedResultDto<Event> serviceResult = eventService.GetEvents(title, from, to, page, pageSize);
+        PaginatedResultDto<Event> serviceResult = await eventService.GetEventsAsync(title, from, to, page, pageSize);
 
         List<EventInfoDto> mappedItems = [.. serviceResult.Items.Select(MapToInfoDto)];
 
@@ -30,13 +30,14 @@ public class EventsController(IEventService eventService, IBookingService bookin
     }
 
     [HttpGet("{id:guid}")]
-    public ActionResult<EventInfoDto> GetEventById(Guid id)
+    public async Task<ActionResult<EventInfoDto>> GetEventById(Guid id)
     {
-        return MapToInfoDto(eventService.GetEventById(id));
+        Event eventById = await eventService.GetEventByIdAsync(id);
+        return MapToInfoDto(eventById);
     }
 
     [HttpPost]
-    public ActionResult<EventInfoDto> CreateEvent([FromBody] CreateEventDto dto)
+    public async Task<ActionResult<EventInfoDto>> CreateEvent([FromBody] CreateEventDto dto)
     {
         Event newEvent = Event.Create(
             dto.Title,
@@ -46,29 +47,29 @@ public class EventsController(IEventService eventService, IBookingService bookin
             dto.TotalSeats
         );
 
-        Event createdEvent = eventService.AddEvent(newEvent);
+        Event createdEvent = await eventService.AddEventAsync(newEvent);
 
         return CreatedAtAction(nameof(GetEventById), new { id = createdEvent.Id }, MapToInfoDto(createdEvent));
     }
 
     [HttpPut("{id:guid}")]
-    public ActionResult UpdateEvent(Guid id, [FromBody] CreateEventDto dto)
+    public async Task<ActionResult> UpdateEvent(Guid id, [FromBody] CreateEventDto dto)
     {
-        Event existingEvent = eventService.GetEventById(id);
+        Event existingEvent = await eventService.GetEventByIdAsync(id);
 
         Event eventToUpdate = MapToEvent(dto);
         eventToUpdate.Id = id;
         eventToUpdate.AvailableSeats = existingEvent.AvailableSeats;
 
-        eventService.UpdateEvent(id, eventToUpdate);
+        await eventService.UpdateEventAsync(id, eventToUpdate);
 
         return NoContent();
     }
 
     [HttpDelete("{id:guid}")]
-    public ActionResult DeleteEvent(Guid id)
+    public async Task<ActionResult> DeleteEvent(Guid id)
     {
-        eventService.RemoveEvent(id);
+        await eventService.RemoveEventAsync(id);
 
         return NoContent();
     }

@@ -4,18 +4,18 @@ namespace EventGrok.Services;
 
 public interface IEventService
 {
-    PaginatedResultDto<Event> GetEvents(
+    Task<PaginatedResultDto<Event>> GetEventsAsync(
         string? title, 
         DateTime? from, 
         DateTime? to, 
         int page = 1, 
         int pageSize = 10);
     
-    Event GetEventById(Guid id);
+    Task<Event> GetEventByIdAsync(Guid id);
     
-    Event AddEvent(Event newEvent);
+    Task<Event> AddEventAsync(Event newEvent);
     
-    void UpdateEvent(Guid id, Event updatedEvent);
+    Task UpdateEventAsync(Guid id, Event updatedEvent);
     
-    void RemoveEvent(Guid id);
+    Task RemoveEventAsync(Guid id);
 }

@@ -2,19 +2,24 @@ using EventGrok.Models;
 
 namespace EventGrok.Services;
 
-public class BookingProcessingBackgroundService(IBookingService bookingService, IEventService eventService) : BackgroundService
+public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactory) : BackgroundService
 {
-    private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                IEnumerable<Booking> bookings = await bookingService.GetPendingBookingsAsync();
+                List<Guid> pendingBookingIds;
 
-                IEnumerable<Task> tasks = bookings.Select(booking => ProcessBookingAsync(booking, stoppingToken));
+                await using (var scope = scopeFactory.CreateAsyncScope())
+                {
+                    var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+                    IEnumerable<Booking> bookings = await bookingService.GetPendingBookingsAsync();
+                    pendingBookingIds = [.. bookings.Select(b => b.Id)];
+                }
+
+                IEnumerable<Task> tasks = pendingBookingIds.Select(id => ProcessBookingAsync(id, stoppingToken));
                 await Task.WhenAll(tasks);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -26,45 +31,41 @@ public class BookingProcessingBackgroundService(IBookingService bookingService, 
         }
     }
 
-    private async Task ProcessBookingAsync(Booking booking, CancellationToken stoppingToken)
+    private async Task ProcessBookingAsync(Guid bookingId, CancellationToken stoppingToken)
     {
-        await Task.Delay(2000, stoppingToken);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        await _processingSemaphore.WaitAsync();
+        Booking booking = await bookingService.GetBookingByIdAsync(bookingId);
+
+        Action<Booking> applyStatus;
+
         try
         {
-            Action<Booking> applyStatus;
-            
+            Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId);
+            applyStatus = booking => booking.Confirm();
+        }
+        catch (KeyNotFoundException)
+        {
+            applyStatus = booking => booking.Reject();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
             try
             {
-                Event eventToBook = eventService.GetEventById(booking.EventId);
-                applyStatus = booking => booking.Confirm();
+                Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId);
+                eventToBook.ReleaseSeats();
             }
-            catch (KeyNotFoundException)
+            catch
             {
-                applyStatus = booking => booking.Reject();
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                try
-                {
-                    Event eventToBook = eventService.GetEventById(booking.EventId);
-                    eventToBook.ReleaseSeats();
-                }
-                catch
-                {
-                    // Событие удалено между попытками - нечего освобождать
-                }
-                
-                applyStatus = booking => booking.Reject();
+                // Событие удалено между попытками - нечего освобождать
             }
 
-            applyStatus(booking);
-            await bookingService.UpdateBookingAsync(booking);
+            applyStatus = booking => booking.Reject();
         }
-        finally
-        {
-            _processingSemaphore.Release();
-        }
+
+        applyStatus(booking);
+        await bookingService.UpdateBookingAsync(booking);
     }
 }

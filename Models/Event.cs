@@ -18,6 +18,8 @@ public class Event
 
     public int AvailableSeats { get; set; }
 
+    public List<Booking> Bookings { get; set; } = [];
+
     public static Event Create(string title, string description, DateTime startAt, DateTime endAt, int totalSeats)
     {
         if (totalSeats <= 0)
