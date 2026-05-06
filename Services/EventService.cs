@@ -59,11 +59,15 @@ public class EventService(AppDbContext context) : IEventService
         if (updatedEvent.EndAt <= updatedEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
+        int bookedSeats = existingEvent.TotalSeats - existingEvent.AvailableSeats;
+
         existingEvent.Title = updatedEvent.Title;
         existingEvent.Description = updatedEvent.Description;
         existingEvent.StartAt = updatedEvent.StartAt;
         existingEvent.EndAt = updatedEvent.EndAt;
+
         existingEvent.TotalSeats = updatedEvent.TotalSeats;
+        existingEvent.AvailableSeats = Math.Max(0, existingEvent.TotalSeats - bookedSeats);
 
         await context.SaveChangesAsync();
     }
