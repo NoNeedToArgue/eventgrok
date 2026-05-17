@@ -1,20 +1,19 @@
-using EventGrok.DataAccess;
+using EventGrok.DataAccess.Repositories;
 using EventGrok.Exceptions;
 using EventGrok.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventGrok.Services;
 
-public class BookingService(AppDbContext context) : IBookingService
+public class BookingService(IBookingRepository bookingRepo, IEventRepository eventRepo) : IBookingService
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
 
-    public async Task<Booking> CreateBookingAsync(Guid eventId)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct = default)
     {
-        await _bookingSemaphore.WaitAsync();
+        await _bookingSemaphore.WaitAsync(ct);
         try
         {
-            Event eventToBook = await context.Events.FindAsync(eventId) ??
+            Event eventToBook = await eventRepo.GetEventByIdAsync(eventId, ct) ??
                 throw new KeyNotFoundException($"Событие с id = {eventId} не найдено");
 
             if (!eventToBook.TryReserveSeats(1))
@@ -28,8 +27,8 @@ public class BookingService(AppDbContext context) : IBookingService
                 CreatedAt = DateTime.UtcNow
             };
 
-            await context.AddAsync(booking);
-            await context.SaveChangesAsync();
+            await bookingRepo.AddBookingAsync(booking, ct);
+            await bookingRepo.SaveChangesAsync(ct);
 
             return booking;
         }
@@ -39,30 +38,13 @@ public class BookingService(AppDbContext context) : IBookingService
         }
     }
 
-    public async Task<Booking> GetBookingByIdAsync(Guid bookingId)
-    {
-        Booking booking = await context.Bookings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(b => b.Id == bookingId) ??
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default) =>
+        await bookingRepo.GetBookingByIdAsync(bookingId, ct) ??
             throw new KeyNotFoundException($"Бронирование с id = {bookingId} не найдено");
 
-        return booking;
-    }
+    public async Task<IReadOnlyList<Booking>> GetPendingBookingsAsync(CancellationToken ct = default) =>
+        await bookingRepo.GetPendingBookingsAsync(ct);
 
-    public async Task<IEnumerable<Booking>> GetPendingBookingsAsync() =>
-        await context.Bookings
-            .AsNoTracking()
-            .Where(b => b.Status == BookingStatus.Pending)
-            .ToListAsync();
-
-    public async Task UpdateBookingAsync(Booking booking)
-    {
-        Booking existingBooking = await context.Bookings.FindAsync(booking.Id) ??
-            throw new KeyNotFoundException($"Бронирование с id = {booking.Id} не найдено");
-
-        existingBooking.Status = booking.Status;
-        existingBooking.ProcessedAt = booking.ProcessedAt;
-
-        await context.SaveChangesAsync();
-    }
+    public async Task CommitChangesAsync(CancellationToken ct = default) =>
+        await bookingRepo.SaveChangesAsync(ct);
 }
