@@ -20,8 +20,13 @@
 
   <ItemGroup>
     <Compile Remove="EventGrok.Tests\**" />
+    <Compile Remove="EventGrok.IntegrationTests\**" />
+
     <EmbeddedResource Remove="EventGrok.Tests\**" />
+    <EmbeddedResource Remove="EventGrok.IntegrationTests\**" />
+
     <None Remove="EventGrok.Tests\**" />
+    <None Remove="EventGrok.IntegrationTests\**" />
   </ItemGroup>
 
 </Project>
