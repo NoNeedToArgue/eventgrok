@@ -1,63 +1,50 @@
-using EventGrok.DataAccess;
+using EventGrok.DataAccess.Repositories;
 using EventGrok.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventGrok.Services;
 
-public class EventService(AppDbContext context) : IEventService
+public class EventService(IEventRepository eventRepo) : IEventService
 {
-    public async Task<PaginatedResultDto<Event>> GetEventsAsync(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
+    public async Task<PaginatedResultDto<Event>> GetEventsAsync(
+        string? title,
+        DateTime? from,
+        DateTime? to,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        IQueryable<Event> query = context.Events.AsNoTracking();
-
-        if (title is not null)
-            query = query.Where(e => e.Title.ToLower().Contains(title.ToLower()));
-
-        if (from is not null)
-            query = query.Where(e => e.StartAt >= from);
-
-        if (to is not null)
-            query = query.Where(e => e.EndAt <= to);
-
-        int totalCount = await query.CountAsync();
+        var (events, totalCount) = await eventRepo.GetEventsAsync(title, from, to, page, pageSize, ct);
         int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        List<Event> events = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
 
         return new PaginatedResultDto<Event>(events, totalCount, page, pageSize, totalPages);
     }
 
-    public async Task<Event> GetEventByIdAsync(Guid id)
+    public async Task<Event> GetEventByIdAsync(Guid id, CancellationToken ct = default)
     {
-        Event eventById = await context.Events
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == id) ??
+        Event eventById = await eventRepo.GetEventByIdAsync(id, ct) ??
             throw new KeyNotFoundException($"Событие с id = {id} не найдено");
 
         return eventById;
     }
 
-    public async Task<Event> AddEventAsync(Event newEvent)
+    public async Task<Event> AddEventAsync(Event newEvent, CancellationToken ct = default)
     {
         if (newEvent.EndAt <= newEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
-        await context.Events.AddAsync(newEvent);
-        await context.SaveChangesAsync();
+        await eventRepo.AddEventAsync(newEvent, ct);
+        await eventRepo.SaveChangesAsync(ct);
 
         return newEvent;
     }
 
-    public async Task UpdateEventAsync(Guid id, Event updatedEvent)
+    public async Task UpdateEventAsync(Guid id, Event updatedEvent, CancellationToken ct = default)
     {
-        Event existingEvent = await context.Events.FindAsync(id) ??
-            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
-
         if (updatedEvent.EndAt <= updatedEvent.StartAt)
             throw new ArgumentException("Дата окончания события должна быть позже даты начала");
+
+        Event existingEvent = await eventRepo.GetEventByIdAsync(id, ct) ??
+            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
 
         int bookedSeats = existingEvent.TotalSeats - existingEvent.AvailableSeats;
 
@@ -69,16 +56,15 @@ public class EventService(AppDbContext context) : IEventService
         existingEvent.TotalSeats = updatedEvent.TotalSeats;
         existingEvent.AvailableSeats = Math.Max(0, existingEvent.TotalSeats - bookedSeats);
 
-        await context.SaveChangesAsync();
+        await eventRepo.SaveChangesAsync(ct);
     }
 
-    public async Task RemoveEventAsync(Guid id)
+    public async Task RemoveEventAsync(Guid id, CancellationToken ct = default)
     {
-        Event existingEvent = await context.Events.FindAsync(id) ??
+        Event existingEvent = await eventRepo.GetEventByIdAsync(id, ct) ??
             throw new KeyNotFoundException($"Событие с id = {id} не найдено");
 
-        context.Events.Remove(existingEvent);
-
-        await context.SaveChangesAsync();
+        await eventRepo.RemoveEventAsync(existingEvent, ct);
+        await eventRepo.SaveChangesAsync(ct);
     }
 }

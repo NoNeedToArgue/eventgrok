@@ -15,7 +15,7 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
                 await using (var scope = scopeFactory.CreateAsyncScope())
                 {
                     var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                    IEnumerable<Booking> bookings = await bookingService.GetPendingBookingsAsync();
+                    IEnumerable<Booking> bookings = await bookingService.GetPendingBookingsAsync(stoppingToken);
                     pendingBookingIds = [.. bookings.Select(b => b.Id)];
                 }
 
@@ -37,13 +37,13 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
         var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Booking booking = await bookingService.GetBookingByIdAsync(bookingId);
+        Booking booking = await bookingService.GetBookingByIdAsync(bookingId, stoppingToken);
 
         Action<Booking> applyStatus;
 
         try
         {
-            Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId);
+            Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId, stoppingToken);
             applyStatus = booking => booking.Confirm();
         }
         catch (KeyNotFoundException)
@@ -54,7 +54,7 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         {
             try
             {
-                Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId);
+                Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId, stoppingToken);
                 eventToBook.ReleaseSeats();
             }
             catch
@@ -66,6 +66,6 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         }
 
         applyStatus(booking);
-        await bookingService.UpdateBookingAsync(booking);
+        await bookingService.CommitChangesAsync(stoppingToken);
     }
 }

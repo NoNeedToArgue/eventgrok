@@ -11,7 +11,7 @@ ASP.NET Core Web API для управления событиями.
    docker compose up -d
    ```
    
-   Схема БД создаётся автоматически при запуске через `EnsureCreated`.
+   Схема БД управляется миграциями EF Core. При запуске применяется `Migrate()`.
 
 2. Запустите из корневой папки:
    ```bash
@@ -20,13 +20,31 @@ ASP.NET Core Web API для управления событиями.
    
 3. Откройте Swagger UI: http://localhost:5263/swagger
 
+## Миграции
+
+Создание:
+```bash
+dotnet ef migrations add <Name>
+```
+Применение:
+```bash
+dotnet ef database update
+```
+
 ## Тесты
 
-Используется EF Core InMemory Provider.
+**Юнит-тесты используют EF Core InMemory Provider.**
 
 Запустите из корневой папки:
 ```bash
 dotnet test EventGrok.Tests/EventGrok.Tests.csproj
+```
+
+**Интеграционные тесты используют PostgreSQL в Docker. Требуется запущенный Docker Desktop.**
+
+Запустите из корневой папки:
+```bash
+dotnet test EventGrok.IntegrationTests/EventGrok.IntegrationTests.csproj
 ```
 
 ## API

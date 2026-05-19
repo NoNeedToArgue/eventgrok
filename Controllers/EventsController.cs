@@ -14,9 +14,10 @@ public class EventsController(IEventService eventService, IBookingService bookin
         DateTime? from,
         DateTime? to,
         int page = 1,
-        int pageSize = 10)
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        PaginatedResultDto<Event> serviceResult = await eventService.GetEventsAsync(title, from, to, page, pageSize);
+        PaginatedResultDto<Event> serviceResult = await eventService.GetEventsAsync(title, from, to, page, pageSize, ct);
 
         List<EventInfoDto> mappedItems = [.. serviceResult.Items.Select(MapToInfoDto)];
 
@@ -30,14 +31,14 @@ public class EventsController(IEventService eventService, IBookingService bookin
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<EventInfoDto>> GetEventById(Guid id)
+    public async Task<ActionResult<EventInfoDto>> GetEventById(Guid id, CancellationToken ct = default)
     {
-        Event eventById = await eventService.GetEventByIdAsync(id);
+        Event eventById = await eventService.GetEventByIdAsync(id, ct);
         return MapToInfoDto(eventById);
     }
 
     [HttpPost]
-    public async Task<ActionResult<EventInfoDto>> CreateEvent([FromBody] CreateEventDto dto)
+    public async Task<ActionResult<EventInfoDto>> CreateEvent([FromBody] CreateEventDto dto, CancellationToken ct = default)
     {
         Event newEvent = Event.Create(
             dto.Title,
@@ -47,38 +48,38 @@ public class EventsController(IEventService eventService, IBookingService bookin
             dto.TotalSeats
         );
 
-        Event createdEvent = await eventService.AddEventAsync(newEvent);
+        Event createdEvent = await eventService.AddEventAsync(newEvent, ct);
 
         return CreatedAtAction(nameof(GetEventById), new { id = createdEvent.Id }, MapToInfoDto(createdEvent));
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult> UpdateEvent(Guid id, [FromBody] CreateEventDto dto)
+    public async Task<ActionResult> UpdateEvent(Guid id, [FromBody] CreateEventDto dto, CancellationToken ct = default)
     {
-        Event existingEvent = await eventService.GetEventByIdAsync(id);
+        Event existingEvent = await eventService.GetEventByIdAsync(id, ct);
 
         Event eventToUpdate = MapToEvent(dto);
         eventToUpdate.Id = id;
         eventToUpdate.AvailableSeats = existingEvent.AvailableSeats;
 
-        await eventService.UpdateEventAsync(id, eventToUpdate);
+        await eventService.UpdateEventAsync(id, eventToUpdate, ct);
 
         return NoContent();
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<ActionResult> DeleteEvent(Guid id)
+    public async Task<ActionResult> DeleteEvent(Guid id, CancellationToken ct = default)
     {
-        await eventService.RemoveEventAsync(id);
+        await eventService.RemoveEventAsync(id, ct);
 
         return NoContent();
     }
 
     [HttpPost("{id:guid}/book")]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<Booking>> BookEvent(Guid id)
+    public async Task<ActionResult<Booking>> BookEvent(Guid id, CancellationToken ct = default)
     {
-        Booking booking = await bookingService.CreateBookingAsync(id);
+        Booking booking = await bookingService.CreateBookingAsync(id, ct);
 
         string location = $"/bookings/{booking.Id}";
 
