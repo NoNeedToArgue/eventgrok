@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="EventGrok.Application/EventGrok.Application.csproj" />
+  <Project Path="EventGrok.Domain/EventGrok.Domain.csproj" />
+  <Project Path="EventGrok.Infrastructure/EventGrok.Infrastructure.csproj" />
+  <Project Path="EventGrok.IntegrationTests/EventGrok.IntegrationTests.csproj" />
+  <Project Path="EventGrok.Presentation/EventGrok.Presentation.csproj" />
+  <Project Path="EventGrok.Tests/EventGrok.Tests.csproj" />
+</Solution>
