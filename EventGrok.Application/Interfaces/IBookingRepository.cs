@@ -1,6 +1,6 @@
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
 
-namespace EventGrok.DataAccess.Repositories;
+namespace EventGrok.Application.Interfaces;
 
 public interface IBookingRepository
 {

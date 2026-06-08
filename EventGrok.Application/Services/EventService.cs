@@ -1,7 +1,8 @@
-using EventGrok.DataAccess.Repositories;
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
+using EventGrok.Application.Interfaces;
+using EventGrok.Application.DTOs;
 
-namespace EventGrok.Services;
+namespace EventGrok.Application.Services;
 
 public class EventService(IEventRepository eventRepo) : IEventService
 {

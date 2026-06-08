@@ -1,6 +1,6 @@
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
 
-namespace EventGrok.Services;
+namespace EventGrok.Application.Services;
 
 public interface IBookingService
 {

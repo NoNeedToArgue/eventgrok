@@ -1,8 +1,8 @@
-using EventGrok.DataAccess.Repositories;
-using EventGrok.Exceptions;
-using EventGrok.Models;
+using EventGrok.Domain.Exceptions;
+using EventGrok.Domain.Entities;
+using EventGrok.Application.Interfaces;
 
-namespace EventGrok.Services;
+namespace EventGrok.Application.Services;
 
 public class BookingService(IBookingRepository bookingRepo, IEventRepository eventRepo) : IBookingService
 {

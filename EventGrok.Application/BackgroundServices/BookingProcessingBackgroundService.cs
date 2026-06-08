@@ -1,6 +1,9 @@
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
+using EventGrok.Application.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace EventGrok.Services;
+namespace EventGrok.Application.BackgroundServices;
 
 public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactory) : BackgroundService
 {

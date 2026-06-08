@@ -1,4 +1,4 @@
-namespace EventGrok.Models;
+namespace EventGrok.Application.DTOs;
 
 public record PaginatedResultDto<T>(
     IReadOnlyList<T> Items,
