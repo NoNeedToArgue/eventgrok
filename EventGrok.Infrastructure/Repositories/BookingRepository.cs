@@ -1,7 +1,9 @@
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
+using EventGrok.Infrastructure.Data;
+using EventGrok.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGrok.DataAccess.Repositories;
+namespace EventGrok.Infrastructure.Repositories;
 
 public class BookingRepository(AppDbContext context) : IBookingRepository
 {

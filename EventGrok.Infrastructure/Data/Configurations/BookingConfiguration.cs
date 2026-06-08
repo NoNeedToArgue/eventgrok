@@ -1,8 +1,8 @@
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EventGrok.DataAccess.Configurations;
+namespace EventGrok.Infrastructure.Data.Configurations;
 
 public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 {

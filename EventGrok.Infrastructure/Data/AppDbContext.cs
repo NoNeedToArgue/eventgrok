@@ -1,7 +1,7 @@
-using EventGrok.Models;
+using EventGrok.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGrok.DataAccess;
+namespace EventGrok.Infrastructure.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
