@@ -1,4 +1,4 @@
-namespace EventGrok.Models;
+namespace EventGrok.Domain.Entities;
 
 public enum BookingStatus
 {

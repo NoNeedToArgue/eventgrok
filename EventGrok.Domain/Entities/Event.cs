@@ -1,6 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+using EventGrok.Domain.Exceptions;
 
-namespace EventGrok.Models;
+namespace EventGrok.Domain.Entities;
 
 public class Event
 {
@@ -23,7 +23,7 @@ public class Event
     public static Event Create(string title, string description, DateTime startAt, DateTime endAt, int totalSeats)
     {
         if (totalSeats <= 0)
-            throw new ValidationException("Количество мест должно быть больше нуля");
+            throw new InvalidEventException("Количество мест должно быть больше нуля");
 
         return new Event
         {

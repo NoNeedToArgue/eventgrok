@@ -1,5 +1,4 @@
-namespace EventGrok.Models;
-using System.Text.Json.Serialization;
+namespace EventGrok.Domain.Entities;
 
 public class Booking
 {
@@ -13,7 +12,6 @@ public class Booking
 
     public DateTime? ProcessedAt { get; set; }
 
-    [JsonIgnore]
     public Event Event { get; set; } = null!;
 
     public void Confirm()
