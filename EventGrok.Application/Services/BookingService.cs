@@ -1,6 +1,7 @@
 using EventGrok.Domain.Exceptions;
 using EventGrok.Domain.Entities;
 using EventGrok.Application.Interfaces;
+using EventGrok.Application.DTOs;
 
 namespace EventGrok.Application.Services;
 
@@ -8,7 +9,7 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
 
-    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct = default)
+    public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken ct = default)
     {
         await _bookingSemaphore.WaitAsync(ct);
         try
@@ -30,7 +31,13 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
             await bookingRepo.AddBookingAsync(booking, ct);
             await bookingRepo.SaveChangesAsync(ct);
 
-            return booking;
+            return new BookingDto(
+                booking.Id,
+                booking.EventId,
+                booking.Status.ToString(),
+                booking.CreatedAt,
+                booking.ProcessedAt
+            );
         }
         finally
         {
@@ -38,9 +45,19 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
         }
     }
 
-    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default) =>
-        await bookingRepo.GetBookingByIdAsync(bookingId, ct) ??
+    public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default)
+    {
+        Booking booking = await bookingRepo.GetBookingByIdAsync(bookingId, ct) ??
             throw new KeyNotFoundException($"Бронирование с id = {bookingId} не найдено");
+
+        return new BookingDto(
+            booking.Id,
+            booking.EventId,
+            booking.Status.ToString(),
+            booking.CreatedAt,
+            booking.ProcessedAt
+        );
+    }
 
     public async Task<IReadOnlyList<Booking>> GetPendingBookingsAsync(CancellationToken ct = default) =>
         await bookingRepo.GetPendingBookingsAsync(ct);

@@ -1,17 +1,17 @@
-using EventGrok.Models;
-using EventGrok.Services;
+using EventGrok.Application.DTOs;
+using EventGrok.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EventGrok.Controllers;
+namespace EventGrok.Presentation.Controllers;
 
 [ApiController]
 [Route("bookings")]
 public class BookingsController(IBookingService bookingService) : ControllerBase
 {
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Booking>> GetBookingById(Guid id, CancellationToken ct = default)
+    public async Task<ActionResult<BookingDto>> GetBookingById(Guid id, CancellationToken ct = default)
     {
-        Booking booking = await bookingService.GetBookingByIdAsync(id, ct);
+        BookingDto booking = await bookingService.GetBookingByIdAsync(id, ct);
 
         return booking;
     }

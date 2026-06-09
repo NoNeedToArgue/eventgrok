@@ -1,5 +1,5 @@
 using EventGrok.Domain.Entities;
-using EventGrok.Application.Services;
+using EventGrok.Application.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -17,8 +17,8 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
 
                 await using (var scope = scopeFactory.CreateAsyncScope())
                 {
-                    var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                    IEnumerable<Booking> bookings = await bookingService.GetPendingBookingsAsync(stoppingToken);
+                    var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+                    IEnumerable<Booking> bookings = await bookingRepo.GetPendingBookingsAsync(stoppingToken);
                     pendingBookingIds = [.. bookings.Select(b => b.Id)];
                 }
 
@@ -37,16 +37,18 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
     private async Task ProcessBookingAsync(Guid bookingId, CancellationToken stoppingToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
-        var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        var eventRepo = scope.ServiceProvider.GetRequiredService<IEventRepository>();
 
-        Booking booking = await bookingService.GetBookingByIdAsync(bookingId, stoppingToken);
+        Booking booking = await bookingRepo.GetBookingByIdAsync(bookingId, stoppingToken) ??
+            throw new KeyNotFoundException($"Бронирование с id = {bookingId} не найдено");
 
         Action<Booking> applyStatus;
 
         try
         {
-            Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId, stoppingToken);
+            Event eventToBook = await eventRepo.GetEventByIdAsync(booking.EventId, stoppingToken) ??
+                throw new KeyNotFoundException($"Событие с id = {booking.EventId} не найдено");
             applyStatus = booking => booking.Confirm();
         }
         catch (KeyNotFoundException)
@@ -57,7 +59,8 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         {
             try
             {
-                Event eventToBook = await eventService.GetEventByIdAsync(booking.EventId, stoppingToken);
+                Event eventToBook = await eventRepo.GetEventByIdAsync(booking.EventId, stoppingToken) ??
+                    throw new KeyNotFoundException($"Событие с id = {booking.EventId} не найдено");
                 eventToBook.ReleaseSeats();
             }
             catch
@@ -69,6 +72,6 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         }
 
         applyStatus(booking);
-        await bookingService.CommitChangesAsync(stoppingToken);
+        await bookingRepo.SaveChangesAsync(stoppingToken);
     }
 }

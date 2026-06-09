@@ -1,6 +1,6 @@
-using EventGrok.Middlewares;
+using EventGrok.Presentation.Middlewares;
 
-namespace EventGrok.Extensions;
+namespace EventGrok.Presentation.Extensions;
 
 public static class ExceptionHandlingMiddlewareExtensions
 {

@@ -1,17 +1,15 @@
-using EventGrok.Services;
-using EventGrok.Extensions;
-using System.Text.Json.Serialization;
-using EventGrok.DataAccess;
-using EventGrok.DataAccess.Repositories;
+using EventGrok.Presentation.Extensions;
 using Microsoft.EntityFrameworkCore;
+using EventGrok.Application.Extensions;
+using EventGrok.Infrastructure.Extensions;
+using EventGrok.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers().AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.Converters.Add(
-        new JsonStringEnumConverter());
-});
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
+builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,17 +22,6 @@ if (builder.Environment.IsDevelopment())
         options.ValidateOnBuild = true;
     });
 }
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<IEventRepository, EventRepository>();
-builder.Services.AddScoped<IBookingRepository, BookingRepository>();
-
-builder.Services.AddScoped<IEventService, EventService>();
-builder.Services.AddScoped<IBookingService, BookingService>();
-
-builder.Services.AddHostedService<BookingProcessingBackgroundService>();
 
 var app = builder.Build();
 

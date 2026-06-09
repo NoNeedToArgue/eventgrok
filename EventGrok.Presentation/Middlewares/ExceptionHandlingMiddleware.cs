@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using EventGrok.Exceptions;
+using EventGrok.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EventGrok.Middlewares;
+namespace EventGrok.Presentation.Middlewares;
 
 public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
