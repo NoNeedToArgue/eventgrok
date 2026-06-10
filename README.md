@@ -28,7 +28,7 @@ Clean Architecture:
 
 2. Запустите из корневой папки:
    ```bash
-   dotnet run
+   dotnet run --project EventGrok.Presentation
    ```
    
 3. Откройте Swagger UI: http://localhost:5263/swagger
@@ -37,11 +37,11 @@ Clean Architecture:
 
 Создание:
 ```bash
-dotnet ef migrations add <Name> -p EventGrok.Infrastructure -s EventGrok.Presentation
+dotnet ef migrations add <Name> --project EventGrok.Infrastructure --startup-project EventGrok.Presentation
 ```
 Применение:
 ```bash
-dotnet ef database update -p EventGrok.Infrastructure -s EventGrok.Presentation
+dotnet ef database update --project EventGrok.Infrastructure --startup-project EventGrok.Presentation
 ```
 
 ## Тесты
