@@ -2,6 +2,19 @@
 
 ASP.NET Core Web API для управления событиями.
 
+## Структура проекта
+
+Clean Architecture:
+
+| Слой | Назначение |
+|---|---|
+| `EventGrok.Domain` | Сущности (`Event`, `Booking`), доменные правила и исключения |
+| `EventGrok.Application` | Сервисы, DTO, интерфейсы репозиториев (порты), фоновые сервисы |
+| `EventGrok.Infrastructure` | Реализация репозиториев, `AppDbContext`, миграции EF Core |
+| `EventGrok.Presentation` | Контроллеры, middleware, `Program.cs` (composition root) |
+| `EventGrok.Tests` | Юнит-тесты (InMemory EF Core) |
+| `EventGrok.IntegrationTests` | Интеграционные тесты (PostgreSQL в Docker через Testcontainers) |
+
 ## Запуск
 
 1. Для работы приложения требуется PostgreSQL. При использовании локальной БД настройте строку подключения в `appsettings.json`.
@@ -15,7 +28,7 @@ ASP.NET Core Web API для управления событиями.
 
 2. Запустите из корневой папки:
    ```bash
-   dotnet run
+   dotnet run --project EventGrok.Presentation
    ```
    
 3. Откройте Swagger UI: http://localhost:5263/swagger
@@ -24,11 +37,11 @@ ASP.NET Core Web API для управления событиями.
 
 Создание:
 ```bash
-dotnet ef migrations add <Name>
+dotnet ef migrations add <Name> --project EventGrok.Infrastructure --startup-project EventGrok.Presentation
 ```
 Применение:
 ```bash
-dotnet ef database update
+dotnet ef database update --project EventGrok.Infrastructure --startup-project EventGrok.Presentation
 ```
 
 ## Тесты

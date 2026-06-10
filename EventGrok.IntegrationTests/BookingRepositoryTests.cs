@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using EventGrok.DataAccess;
-using EventGrok.DataAccess.Repositories;
-using EventGrok.Models;
+using EventGrok.Infrastructure.Data;
+using EventGrok.Infrastructure.Repositories;
+using EventGrok.Domain.Entities;
 using EventGrok.IntegrationTests.Fixtures;
 using EventGrok.IntegrationTests.CollectionDefinitions;
 

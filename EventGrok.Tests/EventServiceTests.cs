@@ -1,7 +1,9 @@
-﻿using EventGrok.DataAccess;
-using EventGrok.Models;
-using EventGrok.Services;
-using EventGrok.DataAccess.Repositories;
+﻿using EventGrok.Infrastructure.Data;
+using EventGrok.Domain.Entities;
+using EventGrok.Application.Services;
+using EventGrok.Application.DTOs;
+using EventGrok.Application.Interfaces;
+using EventGrok.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,6 +33,9 @@ public class EventServiceTests
     private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
         Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
 
+    private static CreateEventDto CreateValidEventDto(string title = "Test Event", int totalSeats = 100) =>
+        new() { Title = title, StartAt = DateTime.UtcNow.AddHours(1), EndAt = DateTime.UtcNow.AddHours(2), TotalSeats = totalSeats };
+
     [Fact]
     [Trait("Category", "AddEvent")]
     [Trait("Data", "Valid")]
@@ -39,10 +44,10 @@ public class EventServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
-        Event newEvent = CreateValidEvent("Концерт");
+        CreateEventDto newEvent = CreateValidEventDto("Концерт");
 
         // Act
-        Event result = await eventService.AddEventAsync(newEvent);
+        EventInfoDto result = await eventService.CreateEventAsync(newEvent);
 
         // Assert
         Assert.NotNull(result);
@@ -58,17 +63,14 @@ public class EventServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+        CreateEventDto newEvent = CreateValidEventDto();
 
-        var newEvent = Event.Create(
-            "Концерт с некорректной датой",
-            "Description",
-            DateTime.UtcNow.AddHours(2),
-            DateTime.UtcNow.AddHours(1),
-            100
-        );
+        newEvent.Title = "Концерт с некорректной датой";
+        newEvent.StartAt = DateTime.UtcNow.AddHours(2);
+        newEvent.EndAt = DateTime.UtcNow.AddHours(1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => eventService.AddEventAsync(newEvent));
+        await Assert.ThrowsAsync<ArgumentException>(() => eventService.CreateEventAsync(newEvent));
     }
 
     [Fact]
@@ -79,7 +81,7 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync(null, null, null);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync(null, null, null);
 
         // Assert
         Assert.NotNull(result);
@@ -95,11 +97,11 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        await eventService.AddEventAsync(CreateValidEvent("Концерт"));
-        await eventService.AddEventAsync(CreateValidEvent("Вернисаж"));
+        await eventService.CreateEventAsync(CreateValidEventDto("Концерт"));
+        await eventService.CreateEventAsync(CreateValidEventDto("Вернисаж"));
 
         // Act
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync(null, null, null);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync(null, null, null);
 
         // Assert
         Assert.Equal(2, result.TotalCount);
@@ -114,11 +116,11 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        await eventService.AddEventAsync(CreateValidEvent("Концерт"));
-        await eventService.AddEventAsync(CreateValidEvent("Вернисаж"));
+        await eventService.CreateEventAsync(CreateValidEventDto("Концерт"));
+        await eventService.CreateEventAsync(CreateValidEventDto("Вернисаж"));
 
         // Act
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync("Аквадискотека", null, null);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync("Аквадискотека", null, null);
 
         // Assert
         Assert.NotNull(result);
@@ -137,11 +139,11 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        await eventService.AddEventAsync(CreateValidEvent("Концерт"));
-        await eventService.AddEventAsync(CreateValidEvent("Вернисаж"));
+        await eventService.CreateEventAsync(CreateValidEventDto("Концерт"));
+        await eventService.CreateEventAsync(CreateValidEventDto("Вернисаж"));
 
         // Act
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync("концерт", null, null);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync("концерт", null, null);
 
         // Assert
         Assert.Single(result.Items);
@@ -156,19 +158,19 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event pastEvent = CreateValidEvent("Концерт");
+        CreateEventDto pastEvent = CreateValidEventDto("Концерт");
         pastEvent.StartAt = DateTime.UtcNow.AddHours(-10);
         pastEvent.EndAt = DateTime.UtcNow.AddHours(-9);
 
-        Event futureEvent = CreateValidEvent("Кинофестиваль");
+        CreateEventDto futureEvent = CreateValidEventDto("Кинофестиваль");
         futureEvent.StartAt = DateTime.UtcNow.AddHours(1);
         futureEvent.EndAt = DateTime.UtcNow.AddHours(2);
 
-        await eventService.AddEventAsync(pastEvent);
-        await eventService.AddEventAsync(futureEvent);
+        await eventService.CreateEventAsync(pastEvent);
+        await eventService.CreateEventAsync(futureEvent);
 
         // Act
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync(null, DateTime.UtcNow, null);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync(null, DateTime.UtcNow, null);
 
         // Assert
         Assert.Single(result.Items);
@@ -184,10 +186,10 @@ public class EventServiceTests
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         for (int i = 1; i <= 25; i++)
-            await eventService.AddEventAsync(CreateValidEvent($"Событие {i}"));
+            await eventService.CreateEventAsync(CreateValidEventDto($"Событие {i}"));
 
         // Act
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync(null, null, null, page: 2, pageSize: 10);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync(null, null, null, page: 2, pageSize: 10);
 
         // Assert
         Assert.Equal(25, result.TotalCount);
@@ -204,24 +206,24 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event event1 = CreateValidEvent("Предстоящий концерт");
+        CreateEventDto event1 = CreateValidEventDto("Предстоящий концерт");
         event1.StartAt = DateTime.UtcNow.AddHours(1);
         event1.EndAt = DateTime.UtcNow.AddHours(2);
 
-        Event event2 = CreateValidEvent("Прошедший концерт");
+        CreateEventDto event2 = CreateValidEventDto("Прошедший концерт");
         event2.StartAt = DateTime.UtcNow.AddHours(-10);
         event2.EndAt = DateTime.UtcNow.AddHours(-9);
 
-        Event event3 = CreateValidEvent("Предстоящий вернисаж");
+        CreateEventDto event3 = CreateValidEventDto("Предстоящий вернисаж");
         event3.StartAt = DateTime.UtcNow.AddHours(1);
         event3.EndAt = DateTime.UtcNow.AddHours(2);
 
-        await eventService.AddEventAsync(event1);
-        await eventService.AddEventAsync(event2);
-        await eventService.AddEventAsync(event3);
+        await eventService.CreateEventAsync(event1);
+        await eventService.CreateEventAsync(event2);
+        await eventService.CreateEventAsync(event3);
 
         // Act
-        PaginatedResultDto<Event> result = await eventService.GetEventsAsync("концерт", DateTime.UtcNow, null);
+        PaginatedResultDto<EventInfoDto> result = await eventService.GetEventsAsync("концерт", DateTime.UtcNow, null);
 
         // Assert
         Assert.Single(result.Items);
@@ -237,10 +239,10 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event uniqueEvent = await eventService.AddEventAsync(CreateValidEvent("Голая вечеринка"));
+        EventInfoDto uniqueEvent = await eventService.CreateEventAsync(CreateValidEventDto("Голая вечеринка"));
 
         // Act
-        Event result = await eventService.GetEventByIdAsync(uniqueEvent.Id);
+        EventInfoDto result = await eventService.GetEventByIdAsync(uniqueEvent.Id);
 
         // Assert
         Assert.Equal("Голая вечеринка", result.Title);
@@ -268,13 +270,12 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event oldEvent = await eventService.AddEventAsync(CreateValidEvent("Голая вечеринка"));
-        Event updatedEvent = CreateValidEvent("Одетая вечеринка");
-        updatedEvent.Id = oldEvent.Id;
+        EventInfoDto oldEvent = await eventService.CreateEventAsync(CreateValidEventDto("Голая вечеринка"));
+        CreateEventDto updatedEvent = CreateValidEventDto("Одетая вечеринка");
 
         // Act
         await eventService.UpdateEventAsync(oldEvent.Id, updatedEvent);
-        Event result = await eventService.GetEventByIdAsync(oldEvent.Id);
+        EventInfoDto result = await eventService.GetEventByIdAsync(oldEvent.Id);
 
         // Assert
         Assert.Equal("Одетая вечеринка", result.Title);
@@ -289,7 +290,7 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event updatedEvent = CreateValidEvent();
+        CreateEventDto updatedEvent = CreateValidEventDto();
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() => eventService.UpdateEventAsync(Guid.NewGuid(), updatedEvent));
@@ -304,9 +305,8 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event oldEvent = await eventService.AddEventAsync(CreateValidEvent("Хороший концерт"));
-        Event updatedEvent = CreateValidEvent("Плохой концерт");
-        updatedEvent.Id = oldEvent.Id;
+        EventInfoDto oldEvent = await eventService.CreateEventAsync(CreateValidEventDto("Хороший концерт"));
+        CreateEventDto updatedEvent = CreateValidEventDto("Плохой концерт");
         updatedEvent.EndAt = updatedEvent.StartAt.AddHours(-1);
 
         // Act & Assert
@@ -322,7 +322,7 @@ public class EventServiceTests
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        Event doomedEvent = await eventService.AddEventAsync(CreateValidEvent());
+        EventInfoDto doomedEvent = await eventService.CreateEventAsync(CreateValidEventDto());
 
         // Act
         await eventService.RemoveEventAsync(doomedEvent.Id);
@@ -340,7 +340,6 @@ public class EventServiceTests
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         Event testEvent = CreateValidEvent("Концерт", totalSeats: 2);
-        await eventService.AddEventAsync(testEvent);
 
         testEvent.AvailableSeats = 1;
 
@@ -360,7 +359,6 @@ public class EventServiceTests
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         Event testEvent = CreateValidEvent("Концерт", totalSeats: 3);
-        await eventService.AddEventAsync(testEvent);
 
         // Act
         testEvent.ReleaseSeats(10);

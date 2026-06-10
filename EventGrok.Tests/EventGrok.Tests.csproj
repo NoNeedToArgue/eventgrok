@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\eventgrok.csproj" />
+    <ProjectReference Include="..\EventGrok.Domain\EventGrok.Domain.csproj" />
+    <ProjectReference Include="..\EventGrok.Application\EventGrok.Application.csproj" />
+    <ProjectReference Include="..\EventGrok.Infrastructure\EventGrok.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
