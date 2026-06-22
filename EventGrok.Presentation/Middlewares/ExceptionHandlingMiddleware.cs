@@ -31,8 +31,15 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         {
             ArgumentException ae => ("Bad Request", 400, ae.Message),
             ValidationException ve => ("Bad Request", 400, ve.Message),
+            BookingPastEventException bpee => ("Bad Request", 400, bpee.Message),
+
+            ForbiddenException fe => ("Forbidden", 403, fe.Message),
+
             KeyNotFoundException nf => ("Not Found", 404, nf.Message),
+            
             NoAvailableSeatsException nase => ("Conflict", 409, nase.Message),
+            ActiveBookingsLimitException able => ("Conflict", 409, able.Message),
+    
             _ => ("Internal Server Error", 500, "An unexpected error occurred")
         };
 

@@ -1,6 +1,7 @@
 using EventGrok.Application.Services;
 using EventGrok.Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EventGrok.Presentation.Controllers;
 
@@ -26,6 +27,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
         return await eventService.GetEventByIdAsync(id, ct);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<EventInfoDto>> CreateEvent([FromBody] CreateEventDto dto, CancellationToken ct = default)
     {
@@ -34,6 +36,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
         return CreatedAtAction(nameof(GetEventById), new { id = createdEvent.Id }, createdEvent);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult> UpdateEvent(Guid id, [FromBody] CreateEventDto dto, CancellationToken ct = default)
     {
@@ -42,6 +45,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteEvent(Guid id, CancellationToken ct = default)
     {
@@ -50,11 +54,13 @@ public class EventsController(IEventService eventService, IBookingService bookin
         return NoContent();
     }
 
+    [Authorize]
     [HttpPost("{id:guid}/book")]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BookingDto>> BookEvent(Guid id, CancellationToken ct = default)
     {
-        BookingDto booking = await bookingService.CreateBookingAsync(id, ct);
+        Guid userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        BookingDto booking = await bookingService.CreateBookingAsync(id, userId, ct);
 
         string location = $"/bookings/{booking.Id}";
 
