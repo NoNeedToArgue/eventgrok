@@ -25,6 +25,9 @@ public class Event
         if (totalSeats <= 0)
             throw new InvalidEventException("Количество мест должно быть больше нуля");
 
+        if (endAt <= startAt)
+            throw new InvalidEventException("Дата окончания события должна быть позже даты начала");
+
         return new Event
         {
             Id = Guid.NewGuid(),

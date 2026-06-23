@@ -1,6 +1,7 @@
 using EventGrok.Application.DTOs;
 using EventGrok.Application.Interfaces;
 using EventGrok.Domain.Entities;
+using EventGrok.Domain.Exceptions;
 
 namespace EventGrok.Application.Services;
 
@@ -10,7 +11,7 @@ public class UserService(IUserRepository userRepo, IPasswordHasher passwordHashe
     {
         User? existingUser = await userRepo.GetUserByLoginAsync(dto.Login, ct);
         if (existingUser is not null)
-            throw new InvalidOperationException("Пользователь с таким логином уже существует");
+            throw new UserAlreadyExistsException(dto.Login);
 
         string passwordHash = passwordHasher.HashPassword(dto.Password);
         Role role = Enum.TryParse<Role>(dto.Role, ignoreCase: true, out var parsedRole) 

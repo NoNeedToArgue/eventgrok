@@ -15,7 +15,7 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
         try
         {
             Event eventToBook = await eventRepo.GetEventByIdAsync(eventId, ct) ??
-                throw new KeyNotFoundException($"Событие с id = {eventId} не найдено");
+                throw new EventNotFoundException(eventId);
 
             if (eventToBook.StartAt <= DateTime.UtcNow)
                 throw new BookingPastEventException("Нельзя бронировать прошедшее событие");
@@ -55,7 +55,7 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
     public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default)
     {
         Booking booking = await bookingRepo.GetBookingByIdAsync(bookingId, ct) ??
-            throw new KeyNotFoundException($"Бронирование с id = {bookingId} не найдено");
+            throw new BookingNotFoundException(bookingId);
 
         return new BookingDto(
             booking.Id,
