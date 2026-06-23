@@ -42,9 +42,7 @@ public class Booking
 
     public void Cancel()
     {
-        if (Status == BookingStatus.Cancelled)
-            throw new InvalidOperationException("Бронирование уже отменено");
-
         Status = BookingStatus.Cancelled;
+        ProcessedAt = DateTime.UtcNow;
     }
 }

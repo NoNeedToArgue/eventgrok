@@ -31,6 +31,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         {
             BookingPastEventException bpee => ("Bad Request", 400, bpee.Message),
             InvalidEventException iee => ("Bad Request", 400, iee.Message),
+            BookingAlreadyCancelledException bace => ("Bad Request", 400, bace.Message),
             ForbiddenException fe => ("Forbidden", 403, fe.Message),
             EventNotFoundException enfe => ("Not Found", 404, enfe.Message),
             BookingNotFoundException bnfe => ("Not Found", 404, bnfe.Message),

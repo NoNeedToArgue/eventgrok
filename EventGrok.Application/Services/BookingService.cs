@@ -31,6 +31,7 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
             {
                 Id = Guid.NewGuid(),
                 EventId = eventId,
+                UserId = userId,
                 Status = BookingStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
@@ -72,12 +73,20 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
     public async Task CancelBookingAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct = default)
     {
         Booking booking = await bookingRepo.GetBookingByIdAsync(bookingId, ct) ??
-            throw new KeyNotFoundException($"Бронирование с id = {bookingId} не найдено");
+            throw new BookingNotFoundException(bookingId);
 
         if (!isAdmin && booking.UserId != userId)
             throw new ForbiddenException("Можно отменять только свои бронирования");
 
+        if (booking.Status == BookingStatus.Cancelled)
+            throw new BookingAlreadyCancelledException();
+
+        Event eventToRelease = await eventRepo.GetEventByIdAsync(booking.EventId, ct) ??
+            throw new EventNotFoundException(booking.EventId);
+
         booking.Cancel();
+
+        eventToRelease.ReleaseSeats(1);
 
         await bookingRepo.SaveChangesAsync(ct);
     }
