@@ -14,6 +14,7 @@ public class BookingServiceTests
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly string _dbName;
+    private static readonly Guid TestUserId = Guid.NewGuid();
 
     public BookingServiceTests()
     {
@@ -40,6 +41,7 @@ public class BookingServiceTests
     {
         Id = Guid.NewGuid(),
         EventId = eventId,
+        UserId = TestUserId,
         Status = BookingStatus.Pending,
         CreatedAt = DateTime.UtcNow
     };
@@ -57,7 +59,7 @@ public class BookingServiceTests
         EventInfoDto eventToBook = await eventService.CreateEventAsync(CreateValidEventDto());
 
         // Act
-        BookingDto booking = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto booking = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Assert
         Assert.NotNull(booking);
@@ -80,9 +82,9 @@ public class BookingServiceTests
         EventInfoDto eventToBook = await eventService.CreateEventAsync(CreateValidEventDto());
 
         // Act
-        BookingDto booking1 = await bookingService.CreateBookingAsync(eventToBook.Id);
-        BookingDto booking2 = await bookingService.CreateBookingAsync(eventToBook.Id);
-        BookingDto booking3 = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto booking1 = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
+        BookingDto booking2 = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
+        BookingDto booking3 = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Assert
         Assert.NotEqual(booking1.Id, booking2.Id);
@@ -104,7 +106,7 @@ public class BookingServiceTests
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         EventInfoDto eventToBook = await eventService.CreateEventAsync(CreateValidEventDto());
-        BookingDto createdBooking = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto createdBooking = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Act
         BookingDto retrievedBooking = await bookingService.GetBookingByIdAsync(createdBooking.Id);
@@ -128,7 +130,7 @@ public class BookingServiceTests
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         EventInfoDto eventToBook = await eventService.CreateEventAsync(CreateValidEventDto());
-        BookingDto createdBooking = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto createdBooking = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Act
         Booking? bookingEntity = await context.Bookings.FindAsync(createdBooking.Id);
@@ -146,7 +148,7 @@ public class BookingServiceTests
     [Fact]
     [Trait("Category", "CreateBookingAsync")]
     [Trait("Data", "Invalid")]
-    public async Task CreateBookingAsync_NonExistingEvent_ThrowsKeyNotFoundException()
+    public async Task CreateBookingAsync_NonExistingEvent_ThrowsEventNotFoundException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
@@ -155,14 +157,14 @@ public class BookingServiceTests
         Guid nonExistingEventId = Guid.NewGuid();
 
         // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(
-            () => bookingService.CreateBookingAsync(nonExistingEventId));
+        await Assert.ThrowsAsync<EventNotFoundException>(
+            () => bookingService.CreateBookingAsync(nonExistingEventId, TestUserId));
     }
 
     [Fact]
     [Trait("Category", "CreateBookingAsync")]
     [Trait("Data", "Invalid")]
-    public async Task CreateBookingAsync_DeletedEvent_ThrowsKeyNotFoundException()
+    public async Task CreateBookingAsync_DeletedEvent_ThrowsEventNotFoundException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
@@ -173,14 +175,14 @@ public class BookingServiceTests
         await eventService.RemoveEventAsync(eventToBook.Id);
 
         // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(
-            () => bookingService.CreateBookingAsync(eventToBook.Id));
+        await Assert.ThrowsAsync<EventNotFoundException>(
+            () => bookingService.CreateBookingAsync(eventToBook.Id, TestUserId));
     }
 
     [Fact]
     [Trait("Category", "GetBookingByIdAsync")]
     [Trait("Data", "Invalid")]
-    public async Task GetBookingByIdAsync_NonExistingId_ThrowsKeyNotFoundException()
+    public async Task GetBookingByIdAsync_NonExistingId_ThrowsBookingNotFoundException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
@@ -189,7 +191,7 @@ public class BookingServiceTests
         Guid nonExistingBookingId = Guid.NewGuid();
 
         // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(
+        await Assert.ThrowsAsync<BookingNotFoundException>(
             () => bookingService.GetBookingByIdAsync(nonExistingBookingId));
     }
 
@@ -206,7 +208,7 @@ public class BookingServiceTests
         EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
 
         // Act
-        await bookingService.CreateBookingAsync(eventToBook.Id);
+        await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Assert
         EventInfoDto eventAfterBooking = await eventService.GetEventByIdAsync(eventToBook.Id);
@@ -226,9 +228,9 @@ public class BookingServiceTests
         EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
 
         // Act
-        BookingDto b1 = await bookingService.CreateBookingAsync(eventToBook.Id);
-        BookingDto b2 = await bookingService.CreateBookingAsync(eventToBook.Id);
-        BookingDto b3 = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto b1 = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
+        BookingDto b2 = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
+        BookingDto b3 = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Assert
         Assert.Equal(3, new[] { b1.Id, b2.Id, b3.Id }.Distinct().Count());
@@ -248,11 +250,11 @@ public class BookingServiceTests
 
         CreateEventDto eventToBookDto = CreateValidEventDto("Аквадискотека", totalSeats: 1);
         EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
-        await bookingService.CreateBookingAsync(eventToBook.Id);
+        await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Act & Assert
         await Assert.ThrowsAsync<NoAvailableSeatsException>(
-            () => bookingService.CreateBookingAsync(eventToBook.Id));
+            () => bookingService.CreateBookingAsync(eventToBook.Id, TestUserId));
     }
 
     [Fact]
@@ -275,7 +277,7 @@ public class BookingServiceTests
             {
                 using var scope = _serviceProvider.CreateScope();
                 var scopedBookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                return await scopedBookingService.CreateBookingAsync(eventToBook.Id);
+                return await scopedBookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
             }));
 
         BookingDto[] bookings = await Task.WhenAll(tasks);
@@ -307,7 +309,7 @@ public class BookingServiceTests
                 var scopedBookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
                 try
                 {
-                    return await scopedBookingService.CreateBookingAsync(eventToBook.Id);
+                    return await scopedBookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
                 }
                 catch (NoAvailableSeatsException)
                 {
@@ -371,13 +373,13 @@ public class BookingServiceTests
         EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
 
         // Act
-        BookingDto first = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto first = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         var eventEntity = await context.Events.FindAsync(eventToBook.Id);
         eventEntity!.ReleaseSeats(1);
         await context.SaveChangesAsync();
 
-        BookingDto second = await bookingService.CreateBookingAsync(eventToBook.Id);
+        BookingDto second = await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
 
         // Assert
         Assert.NotNull(second);

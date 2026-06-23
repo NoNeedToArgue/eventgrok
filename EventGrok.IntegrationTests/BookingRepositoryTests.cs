@@ -10,6 +10,8 @@ namespace EventGrok.IntegrationTests;
 [Collection(nameof(PostgresTestCollection))]
 public class BookingRepositoryTests(PostgresContainerFixture fixture)
 {
+    private static readonly Guid TestUserId = Guid.NewGuid();
+
     private async Task<AppDbContext> CreateContextAsync()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -24,8 +26,13 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
     private async Task ResetDatabaseAsync()
     {
         await using var context = await CreateContextAsync();
+        
         await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE bookings, events RESTART IDENTITY CASCADE");
+            "TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE");
+
+        await context.Database.ExecuteSqlRawAsync(
+            "INSERT INTO users (\"Id\", \"Login\", \"PasswordHash\", \"Role\") VALUES ({0}, {1}, {2}, {3})",
+            TestUserId, "testuser", "testhash", 0);
     }
 
     private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
@@ -35,6 +42,7 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
     {
         Id = Guid.NewGuid(),
         EventId = eventId,
+        UserId = TestUserId,
         Status = status,
         CreatedAt = DateTime.UtcNow
     };
