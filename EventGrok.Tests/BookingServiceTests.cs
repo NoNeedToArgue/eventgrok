@@ -388,4 +388,74 @@ public class BookingServiceTests
         EventInfoDto eventAfter = await eventService.GetEventByIdAsync(eventToBook.Id);
         Assert.Equal(0, eventAfter.AvailableSeats);
     }
+
+    [Fact]
+    [Trait("Category", "CreateBookingAsync")]
+    [Trait("Data", "Invalid")]
+    public async Task CreateBookingAsync_PastEvent_ThrowsBookingPastEventException()
+    {
+        // Arrange
+        using var scope = _serviceProvider.CreateScope();
+        IBookingService bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+        IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+
+        CreateEventDto eventToBookDto = new()
+        {
+            Title = "Миллениум",
+            StartAt = DateTime.UtcNow.AddYears(-26),
+            EndAt = DateTime.UtcNow.AddYears(-25),
+            TotalSeats = 2000
+        };
+        EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<BookingPastEventException>(
+            () => bookingService.CreateBookingAsync(eventToBook.Id, TestUserId));
+    }
+
+    [Fact]
+    [Trait("Category", "CreateBookingAsync")]
+    public async Task CreateBookingAsync_WhenLimitReached_ThrowsActiveBookingsLimitException()
+    {
+        // Arrange
+        using var scope = _serviceProvider.CreateScope();
+        IBookingService bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+        IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+
+        int limit = 10;
+
+        CreateEventDto eventToBookDto = CreateValidEventDto();
+        EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
+        for (var i = 0; i < limit; i++)
+            await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ActiveBookingsLimitException>(
+            () => bookingService.CreateBookingAsync(eventToBook.Id, TestUserId));
+    }
+
+    [Fact]
+    [Trait("Category", "CreateBookingAsync")]
+    public async Task CreateBookingAsync_WhenAnotherUserLimitReached_CreateBooking()
+    {
+        // Arrange
+        using var scope = _serviceProvider.CreateScope();
+        IBookingService bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+        IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+        Guid secondTestUserId = Guid.NewGuid();
+
+        int limit = 10;
+
+        CreateEventDto eventToBookDto = CreateValidEventDto();
+        EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
+        for (var i = 0; i < limit; i++)
+            await bookingService.CreateBookingAsync(eventToBook.Id, TestUserId);
+
+        // Act
+        BookingDto booking = await bookingService.CreateBookingAsync(eventToBook.Id, secondTestUserId);
+
+        // Assert
+        Assert.NotNull(booking);
+        Assert.Equal(booking.EventId, eventToBook.Id);
+    }
 }
