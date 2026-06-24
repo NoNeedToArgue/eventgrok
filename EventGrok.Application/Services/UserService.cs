@@ -31,7 +31,7 @@ public class UserService(IUserRepository userRepo, IPasswordHasher passwordHashe
         User? user = await userRepo.GetUserByLoginAsync(dto.Login, ct);
         
         if (user is null || !passwordHasher.VerifyPassword(dto.Password, user.PasswordHash))
-            throw new UnauthorizedAccessException("Неверный логин или пароль");
+            throw new InvalidCredentialsException();
 
         return tokenService.GenerateToken(user);
     }

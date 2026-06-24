@@ -13,7 +13,7 @@ public class AuthController(IUserService userService) : ControllerBase
     {
         UserInfoDto user = await userService.RegisterAsync(dto, ct);
         
-        return user;
+        return NoContent();
     }
 
     [HttpPost("login")]

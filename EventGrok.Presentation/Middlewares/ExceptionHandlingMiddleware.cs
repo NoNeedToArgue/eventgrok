@@ -35,6 +35,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             ForbiddenException fe => ("Forbidden", 403, fe.Message),
             EventNotFoundException enfe => ("Not Found", 404, enfe.Message),
             BookingNotFoundException bnfe => ("Not Found", 404, bnfe.Message),
+            InvalidCredentialsException ice => ("Not Found", 404, ice.Message),
             UserAlreadyExistsException uaee => ("Conflict", 409, uaee.Message),
             NoAvailableSeatsException nase => ("Conflict", 409, nase.Message),
             ActiveBookingsLimitException able => ("Conflict", 409, able.Message),
