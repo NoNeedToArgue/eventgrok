@@ -422,7 +422,7 @@ public class BookingServiceTests
         IBookingService bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        int limit = 10;
+        int limit = BookingService.ActiveBookingsLimit;
 
         CreateEventDto eventToBookDto = CreateValidEventDto();
         EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);
@@ -444,7 +444,7 @@ public class BookingServiceTests
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
         Guid secondTestUserId = Guid.NewGuid();
 
-        int limit = 10;
+        int limit = BookingService.ActiveBookingsLimit;
 
         CreateEventDto eventToBookDto = CreateValidEventDto();
         EventInfoDto eventToBook = await eventService.CreateEventAsync(eventToBookDto);

@@ -8,6 +8,7 @@ namespace EventGrok.Application.Services;
 public class BookingService(IBookingRepository bookingRepo, IEventRepository eventRepo) : IBookingService
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
+    public const int ActiveBookingsLimit = 10;
 
     public async Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct = default)
     {
@@ -21,8 +22,8 @@ public class BookingService(IBookingRepository bookingRepo, IEventRepository eve
                 throw new BookingPastEventException("Нельзя бронировать прошедшее событие");
 
             int activeBookingsCount = await bookingRepo.GetActiveBookingsCountByUserAsync(userId, ct);
-            if (activeBookingsCount >= 10)
-                throw new ActiveBookingsLimitException("Превышен лимит активных бронирований (10)");
+            if (activeBookingsCount >= ActiveBookingsLimit)
+                throw new ActiveBookingsLimitException($"Превышен лимит активных бронирований ({ActiveBookingsLimit})");
 
             if (!eventToBook.TryReserveSeats(1))
                 throw new NoAvailableSeatsException("Нет доступных мест на это событие");
