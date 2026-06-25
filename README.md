@@ -14,6 +14,7 @@ Clean Architecture:
 | `EventGrok.Presentation` | Контроллеры, middleware, `Program.cs` (composition root) |
 | `EventGrok.Tests` | Юнит-тесты (InMemory EF Core) |
 | `EventGrok.IntegrationTests` | Интеграционные тесты (PostgreSQL в Docker через Testcontainers) |
+| `EventGrok.ApiTests` | E2E-тесты API (WebApplicationFactory + Testcontainers) |
 
 ## Запуск
 
@@ -58,6 +59,13 @@ dotnet test EventGrok.Tests/EventGrok.Tests.csproj
 Запустите из корневой папки:
 ```bash
 dotnet test EventGrok.IntegrationTests/EventGrok.IntegrationTests.csproj
+```
+
+**E2E-тесты API используют `WebApplicationFactory` и PostgreSQL в Docker. Требуется запущенный Docker Desktop.**
+
+Запустите из корневой папки:
+```bash
+dotnet test EventGrok.ApiTests/EventGrok.ApiTests.csproj
 ```
 
 ## Аутентификация
