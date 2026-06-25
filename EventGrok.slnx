@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="EventGrok.ApiTests/EventGrok.ApiTests.csproj" />
   <Project Path="EventGrok.Application/EventGrok.Application.csproj" />
   <Project Path="EventGrok.Domain/EventGrok.Domain.csproj" />
   <Project Path="EventGrok.Infrastructure/EventGrok.Infrastructure.csproj" />
