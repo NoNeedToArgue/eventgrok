@@ -116,6 +116,7 @@ dotnet test EventGrok.ApiTests/EventGrok.ApiTests.csproj
 | `DELETE` | `/events/{id}` | Удаление события |
 | `POST` | `/events/{id}/book` | Создание брони для события |
 | `GET` | `/bookings/{id}` | Получение брони по ID |
+| `DELETE` | `/bookings/{id}` | Отмена брони |
 
 ### Параметры фильтрации для `GET /events`
 
@@ -182,6 +183,7 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
 | `Pending` | Ожидает обработки |
 | `Confirmed` | Подтверждена |
 | `Rejected` | Отклонена |
+| `Cancelled` | Отменена |
 
 ### Фоновая обработка
 
