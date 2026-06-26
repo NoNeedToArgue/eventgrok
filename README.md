@@ -14,6 +14,7 @@ Clean Architecture:
 | `EventGrok.Presentation` | Контроллеры, middleware, `Program.cs` (composition root) |
 | `EventGrok.Tests` | Юнит-тесты (InMemory EF Core) |
 | `EventGrok.IntegrationTests` | Интеграционные тесты (PostgreSQL в Docker через Testcontainers) |
+| `EventGrok.ApiTests` | E2E-тесты API (WebApplicationFactory + Testcontainers) |
 
 ## Запуск
 
@@ -60,10 +61,54 @@ dotnet test EventGrok.Tests/EventGrok.Tests.csproj
 dotnet test EventGrok.IntegrationTests/EventGrok.IntegrationTests.csproj
 ```
 
+**E2E-тесты API используют `WebApplicationFactory` и PostgreSQL в Docker. Требуется запущенный Docker Desktop.**
+
+Запустите из корневой папки:
+```bash
+dotnet test EventGrok.ApiTests/EventGrok.ApiTests.csproj
+```
+
+## Аутентификация
+
+### Ролевая модель
+
+| Роль | Доступ |
+| --- | --- |
+| `User` | Регистрация, логин, просмотр событий, бронирование, отмена своей брони |
+| `Admin` | Все действия `User` + CRUD событий, отмена любой брони |
+
+Защищённые эндпоинты возвращают `401` без токена и `403` при недостаточных правах.
+
+### Получение JWT-токена через Swagger
+
+1. Зарегистрируйтесь: `POST /auth/register`
+2. Получите токен: `POST /auth/login`
+3. Нажмите **Authorize** в Swagger UI
+4. Введите токен
+
+### Конфигурация JWT
+
+Для демонстрации секрет хранится в `appsettings.json`:
+
+```json
+{
+  "JwtSettings": {
+    "Secret": "NotSoSecretKey_ONLY_FOR_DEMONSTRATION!",
+    "Issuer": "EventGrok",
+    "Audience": "EventGrokClients",
+    "LifetimeMinutes": 60
+  }
+}
+```
+
+В продакшне используйте безопасное значение (минимум 32 символа), применяйте user secrets или переменные окружения.
+
 ## API
 
 | Метод | Путь | Описание |
 | :--- | :--- | :--- |
+| `POST` | `/auth/register` | Регистрация пользователя |
+| `POST` | `/auth/login` | Получение JWT-токена |
 | `GET` | `/events` | Список всех событий |
 | `GET` | `/events/{id}` | Получение события по ID |
 | `POST` | `/events` | Создание нового события |

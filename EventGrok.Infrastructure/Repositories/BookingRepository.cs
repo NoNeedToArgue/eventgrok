@@ -16,6 +16,9 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
     public async Task<IReadOnlyList<Booking>> GetPendingBookingsAsync(CancellationToken ct = default) =>
         await context.Bookings.Where(b => b.Status == BookingStatus.Pending).ToListAsync(ct);
 
+    public async Task<int> GetActiveBookingsCountByUserAsync(Guid userId, CancellationToken ct = default) =>
+        await context.Bookings.CountAsync(b => b.UserId == userId && b.Status != BookingStatus.Cancelled, ct);
+
     public async Task SaveChangesAsync(CancellationToken ct = default) =>
         await context.SaveChangesAsync(ct);
 }

@@ -1,4 +1,5 @@
 using EventGrok.Domain.Entities;
+using EventGrok.Domain.Exceptions;
 using EventGrok.Application.Interfaces;
 using EventGrok.Application.DTOs;
 
@@ -20,7 +21,7 @@ public class EventService(IEventRepository eventRepo) : IEventService
     public async Task<EventInfoDto> GetEventByIdAsync(Guid id, CancellationToken ct = default)
     {
         Event eventById = await eventRepo.GetEventByIdAsync(id, ct) ??
-            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+            throw new EventNotFoundException(id);
 
         return MapToDto(eventById);
     }
@@ -28,9 +29,6 @@ public class EventService(IEventRepository eventRepo) : IEventService
     public async Task<EventInfoDto> CreateEventAsync(CreateEventDto dto, CancellationToken ct = default)
     {
         Event newEvent = Event.Create(dto.Title, dto.Description, dto.StartAt, dto.EndAt, dto.TotalSeats);
-
-        if (newEvent.EndAt <= newEvent.StartAt)
-            throw new ArgumentException("Дата окончания события должна быть позже даты начала");
 
         await eventRepo.AddEventAsync(newEvent, ct);
         await eventRepo.SaveChangesAsync(ct);
@@ -41,10 +39,10 @@ public class EventService(IEventRepository eventRepo) : IEventService
     public async Task UpdateEventAsync(Guid id, CreateEventDto dto, CancellationToken ct = default)
     {
         if (dto.EndAt <= dto.StartAt)
-            throw new ArgumentException("Дата окончания события должна быть позже даты начала");
+            throw new InvalidEventException("Дата окончания события должна быть позже даты начала");
 
         Event existingEvent = await eventRepo.GetEventByIdAsync(id, ct) ??
-            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+            throw new EventNotFoundException(id);
 
         int bookedSeats = existingEvent.TotalSeats - existingEvent.AvailableSeats;
 
@@ -62,7 +60,7 @@ public class EventService(IEventRepository eventRepo) : IEventService
     public async Task RemoveEventAsync(Guid id, CancellationToken ct = default)
     {
         Event existingEvent = await eventRepo.GetEventByIdAsync(id, ct) ??
-            throw new KeyNotFoundException($"Событие с id = {id} не найдено");
+            throw new EventNotFoundException(id);
 
         await eventRepo.RemoveEventAsync(existingEvent, ct);
         await eventRepo.SaveChangesAsync(ct);

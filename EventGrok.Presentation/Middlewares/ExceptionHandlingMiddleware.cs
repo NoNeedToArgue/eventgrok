@@ -29,10 +29,19 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
 
         (string title, int status, string detail) = ex switch
         {
-            ArgumentException ae => ("Bad Request", 400, ae.Message),
-            ValidationException ve => ("Bad Request", 400, ve.Message),
-            KeyNotFoundException nf => ("Not Found", 404, nf.Message),
+            BookingPastEventException bpee => ("Bad Request", 400, bpee.Message),
+            InvalidEventException iee => ("Bad Request", 400, iee.Message),
+            BookingAlreadyCancelledException bace => ("Bad Request", 400, bace.Message),
+            ForbiddenException fe => ("Forbidden", 403, fe.Message),
+            EventNotFoundException enfe => ("Not Found", 404, enfe.Message),
+            BookingNotFoundException bnfe => ("Not Found", 404, bnfe.Message),
+            InvalidCredentialsException ice => ("Not Found", 404, ice.Message),
+            UserAlreadyExistsException uaee => ("Conflict", 409, uaee.Message),
             NoAvailableSeatsException nase => ("Conflict", 409, nase.Message),
+            ActiveBookingsLimitException able => ("Conflict", 409, able.Message),
+
+            ValidationException ve => ("Bad Request", 400, ve.Message),
+    
             _ => ("Internal Server Error", 500, "An unexpected error occurred")
         };
 

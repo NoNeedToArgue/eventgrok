@@ -1,5 +1,6 @@
 ﻿using EventGrok.Infrastructure.Data;
 using EventGrok.Domain.Entities;
+using EventGrok.Domain.Exceptions;
 using EventGrok.Application.Services;
 using EventGrok.Application.DTOs;
 using EventGrok.Application.Interfaces;
@@ -58,7 +59,7 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "AddEvent")]
     [Trait("Data", "Invalid")]
-    public async Task AddEvent_InvalidDates_ThrowsArgumentException()
+    public async Task AddEvent_InvalidDates_ThrowsInvalidEventException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
@@ -70,7 +71,7 @@ public class EventServiceTests
         newEvent.EndAt = DateTime.UtcNow.AddHours(1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => eventService.CreateEventAsync(newEvent));
+        await Assert.ThrowsAsync<InvalidEventException>(() => eventService.CreateEventAsync(newEvent));
     }
 
     [Fact]
@@ -251,14 +252,14 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "GetEventById")]
     [Trait("Data", "Invalid")]
-    public async Task GetEventById_InvalidId_ThrowsKeyNotFoundException()
+    public async Task GetEventById_InvalidId_ThrowsEventNotFoundException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         IEventService eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => eventService.GetEventByIdAsync(Guid.NewGuid()));
+        await Assert.ThrowsAsync<EventNotFoundException>(() => eventService.GetEventByIdAsync(Guid.NewGuid()));
     }
 
     [Fact]
@@ -284,7 +285,7 @@ public class EventServiceTests
     [Fact]
     [Trait("Category", "UpdateEvent")]
     [Trait("Data", "Invalid")]
-    public async Task UpdateEvent_InvalidId_ThrowsKeyNotFoundException()
+    public async Task UpdateEvent_InvalidId_ThrowsEventNotFoundException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
@@ -293,13 +294,13 @@ public class EventServiceTests
         CreateEventDto updatedEvent = CreateValidEventDto();
 
         // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => eventService.UpdateEventAsync(Guid.NewGuid(), updatedEvent));
+        await Assert.ThrowsAsync<EventNotFoundException>(() => eventService.UpdateEventAsync(Guid.NewGuid(), updatedEvent));
     }
 
     [Fact]
     [Trait("Category", "UpdateEvent")]
     [Trait("Data", "Invalid")]
-    public async Task UpdateEvent_InvalidDates_ThrowsArgumentException()
+    public async Task UpdateEvent_InvalidDates_ThrowsInvalidEventException()
     {
         // Arrange
         using var scope = _serviceProvider.CreateScope();
@@ -310,7 +311,7 @@ public class EventServiceTests
         updatedEvent.EndAt = updatedEvent.StartAt.AddHours(-1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => eventService.UpdateEventAsync(oldEvent.Id, updatedEvent));
+        await Assert.ThrowsAsync<InvalidEventException>(() => eventService.UpdateEventAsync(oldEvent.Id, updatedEvent));
     }
 
     [Fact]
@@ -328,7 +329,7 @@ public class EventServiceTests
         await eventService.RemoveEventAsync(doomedEvent.Id);
 
         // Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => eventService.GetEventByIdAsync(doomedEvent.Id));
+        await Assert.ThrowsAsync<EventNotFoundException>(() => eventService.GetEventByIdAsync(doomedEvent.Id));
     }
 
     [Fact]
