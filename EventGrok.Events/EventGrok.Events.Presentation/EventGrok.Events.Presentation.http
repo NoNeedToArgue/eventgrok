@@ -1,0 +1,6 @@
+@EventGrok.Events.Presentation_HostAddress = http://localhost:5139
+
+GET {{EventGrok.Events.Presentation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
