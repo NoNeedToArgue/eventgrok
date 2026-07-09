@@ -17,5 +17,25 @@ services:
       timeout: 5s
       retries: 5
 
+  events-db:
+    image: postgres:16
+    container_name: eventgrok-events-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: events_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - events-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   users-data:
+  events-data:
+  

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EventGrok.Application.DTOs;
+namespace EventGrok.Events.Application.DTOs;
 
 public class CreateEventDto
 {

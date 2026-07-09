@@ -1,11 +1,11 @@
-using EventGrok.Domain.Entities;
-using EventGrok.Infrastructure.Data;
-using EventGrok.Application.Interfaces;
+using EventGrok.Events.Domain.Entities;
+using EventGrok.Events.Infrastructure.Data;
+using EventGrok.Events.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGrok.Infrastructure.Repositories;
+namespace EventGrok.Events.Infrastructure.Repositories;
 
-public class EventRepository(AppDbContext context) : IEventRepository
+public class EventRepository(EventsDbContext context) : IEventRepository
 {
     public async Task<(IReadOnlyList<Event> Events, int TotalCount)> GetEventsAsync(
         string? title,

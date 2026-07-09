@@ -1,6 +1,6 @@
-using EventGrok.Domain.Exceptions;
+using EventGrok.Events.Domain.Exceptions;
 
-namespace EventGrok.Domain.Entities;
+namespace EventGrok.Events.Domain.Entities;
 
 public class Event
 {
@@ -17,8 +17,6 @@ public class Event
     public required int TotalSeats { get; set; }
 
     public int AvailableSeats { get; set; }
-
-    public List<Booking> Bookings { get; set; } = [];
 
     public static Event Create(string title, string description, DateTime startAt, DateTime endAt, int totalSeats)
     {

@@ -1,6 +1,6 @@
-using EventGrok.Domain.Entities;
+using EventGrok.Events.Domain.Entities;
 
-namespace EventGrok.Application.Interfaces;
+namespace EventGrok.Events.Application.Interfaces;
 
 public interface IEventRepository
 {

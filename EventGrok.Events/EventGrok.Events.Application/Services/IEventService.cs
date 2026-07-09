@@ -1,6 +1,6 @@
-using EventGrok.Application.DTOs;
+using EventGrok.Events.Application.DTOs;
 
-namespace EventGrok.Application.Services;
+namespace EventGrok.Events.Application.Services;
 
 public interface IEventService
 {

@@ -1,9 +1,9 @@
-using EventGrok.Domain.Entities;
-using EventGrok.Domain.Exceptions;
-using EventGrok.Application.Interfaces;
-using EventGrok.Application.DTOs;
+using EventGrok.Events.Domain.Entities;
+using EventGrok.Events.Domain.Exceptions;
+using EventGrok.Events.Application.Interfaces;
+using EventGrok.Events.Application.DTOs;
 
-namespace EventGrok.Application.Services;
+namespace EventGrok.Events.Application.Services;
 
 public class EventService(IEventRepository eventRepo) : IEventService
 {
