@@ -31,11 +31,29 @@ services:
       - events-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bookings-db:
+    image: postgres:16
+    container_name: eventgrok-bookings-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bookings_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - bookings-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
   users-data:
   events-data:
-  
+  bookings-data:

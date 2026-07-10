@@ -53,17 +53,4 @@ public class EventsController(IEventService eventService) : ControllerBase
 
         return NoContent();
     }
-
-    // [Authorize]
-    // [HttpPost("{id:guid}/book")]
-    // [ProducesResponseType(StatusCodes.Status409Conflict)]
-    // public async Task<ActionResult<BookingDto>> BookEvent(Guid id, CancellationToken ct = default)
-    // {
-    //     Guid userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-    //     BookingDto booking = await bookingService.CreateBookingAsync(id, userId, ct);
-
-    //     string location = $"/bookings/{booking.Id}";
-
-    //     return Accepted(location, booking);
-    // }
 }
