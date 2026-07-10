@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EventGrok.Events.Application\EventGrok.Events.Application.csproj" />
     <ProjectReference Include="..\EventGrok.Events.Domain\EventGrok.Events.Domain.csproj" />
+    <ProjectReference Include="..\..\EventGrok.Contracts\EventGrok.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

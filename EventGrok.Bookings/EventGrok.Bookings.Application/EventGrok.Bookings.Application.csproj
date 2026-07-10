@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EventGrok.Bookings.Domain\EventGrok.Bookings.Domain.csproj" />
-    <ProjectReference Include="..\..\EventGrok.Contracts\EventGrok.Contracts\EventGrok.Contracts.csproj" />
+    <ProjectReference Include="..\..\EventGrok.Contracts\EventGrok.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

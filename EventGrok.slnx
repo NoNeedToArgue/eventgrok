@@ -6,7 +6,7 @@
     <Project Path="EventGrok.Bookings/EventGrok.Bookings.Presentation/EventGrok.Bookings.Presentation.csproj" />
   </Folder>
   <Folder Name="/EventGrok.Contracts/">
-    <Project Path="EventGrok.Contracts/EventGrok.Contracts/EventGrok.Contracts.csproj" />
+    <Project Path="EventGrok.Contracts/EventGrok.Contracts.csproj" />
   </Folder>
   <Folder Name="/EventGrok.Events/">
     <Project Path="EventGrok.Events/EventGrok.Events.Application/EventGrok.Events.Application.csproj" />
