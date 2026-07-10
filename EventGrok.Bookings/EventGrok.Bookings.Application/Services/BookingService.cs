@@ -15,18 +15,9 @@ public class BookingService(IBookingRepository bookingRepo) : IBookingService
         await _bookingSemaphore.WaitAsync(ct);
         try
         {
-            // Event eventToBook = await eventRepo.GetEventByIdAsync(eventId, ct) ??
-            //     throw new EventNotFoundException(eventId);
-
-            // if (eventToBook.StartAt <= DateTime.UtcNow)
-            //     throw new BookingPastEventException("Нельзя бронировать прошедшее событие");
-
             int activeBookingsCount = await bookingRepo.GetActiveBookingsCountByUserAsync(userId, ct);
             if (activeBookingsCount >= ActiveBookingsLimit)
                 throw new ActiveBookingsLimitException($"Превышен лимит активных бронирований ({ActiveBookingsLimit})");
-
-            // if (!eventToBook.TryReserveSeats(1))
-            //     throw new NoAvailableSeatsException("Нет доступных мест на это событие");
 
             Booking booking = new()
             {
@@ -82,12 +73,7 @@ public class BookingService(IBookingRepository bookingRepo) : IBookingService
         if (booking.Status == BookingStatus.Cancelled)
             throw new BookingAlreadyCancelledException();
 
-        // Event eventToRelease = await eventRepo.GetEventByIdAsync(booking.EventId, ct) ??
-        //     throw new EventNotFoundException(booking.EventId);
-
         booking.Cancel();
-
-        // eventToRelease.ReleaseSeats(1);
 
         await bookingRepo.SaveChangesAsync(ct);
     }

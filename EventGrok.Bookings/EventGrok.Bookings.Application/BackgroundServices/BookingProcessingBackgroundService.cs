@@ -1,11 +1,18 @@
 using EventGrok.Bookings.Domain.Entities;
 using EventGrok.Bookings.Application.Interfaces;
+using EventGrok.Contracts.Events;
+using EventGrok.Contracts.Topics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace EventGrok.Bookings.Application.BackgroundServices;
 
-public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactory) : BackgroundService
+public class BookingProcessingBackgroundService(
+    IServiceScopeFactory scopeFactory,
+    IKafkaProducer kafkaProducer,
+    ILogger<BookingProcessingBackgroundService> logger
+) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -40,14 +47,12 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
 
         Booking booking = await bookingRepo.GetBookingByIdAsync(bookingId, stoppingToken) ??
-            throw new KeyNotFoundException($"Бронирование с id = {bookingId} не найдено");
+            throw new KeyNotFoundException($"Booking with id = {bookingId} not found");
 
         Action<Booking> applyStatus;
 
         try
         {
-            // Event eventToBook = await eventRepo.GetEventByIdAsync(booking.EventId, stoppingToken) ??
-            //     throw new KeyNotFoundException($"Событие с id = {booking.EventId} не найдено");
             applyStatus = booking => booking.Confirm();
         }
         catch (KeyNotFoundException)
@@ -56,21 +61,29 @@ public class BookingProcessingBackgroundService(IServiceScopeFactory scopeFactor
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // try
-            // {
-            //     Event eventToBook = await eventRepo.GetEventByIdAsync(booking.EventId, stoppingToken) ??
-            //         throw new KeyNotFoundException($"Событие с id = {booking.EventId} не найдено");
-            //     eventToBook.ReleaseSeats();
-            // }
-            // catch
-            // {
-            //     // Событие удалено между попытками - нечего освобождать
-            // }
-
             applyStatus = booking => booking.Reject();
         }
 
         applyStatus(booking);
         await bookingRepo.SaveChangesAsync(stoppingToken);
+
+        if (booking.Status == BookingStatus.Confirmed)
+        {
+            BookingConfirmed bookingConfirmed = new()
+            {
+                BookingId = booking.Id,
+                EventId = booking.EventId,
+                UserId = booking.UserId,
+                ConfirmedAt = DateTime.UtcNow
+            };
+
+            await kafkaProducer.ProduceAsync(
+                TopicNames.BookingConfirmed,
+                bookingConfirmed,
+                booking.EventId.ToString(),
+                stoppingToken);
+
+            logger.LogInformation("Booking {BookingId} confirmed and published to Kafka", booking.Id);
+        }
     }
 }

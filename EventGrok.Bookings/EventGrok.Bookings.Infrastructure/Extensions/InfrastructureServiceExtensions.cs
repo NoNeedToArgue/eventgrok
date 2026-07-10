@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using EventGrok.Bookings.Infrastructure.Data;
 using EventGrok.Bookings.Infrastructure.Repositories;
 using EventGrok.Bookings.Application.Interfaces;
 using EventGrok.Bookings.Infrastructure.Settings;
+using EventGrok.Bookings.Infrastructure.Kafka;
 
 namespace EventGrok.Bookings.Infrastructure.Extensions;
 
@@ -24,6 +26,13 @@ public static class InfrastructureServiceExtensions
             Audience = configuration["JwtSettings:Audience"]!,
         };
         services.AddSingleton(jwtSettings);
+
+        KafkaSettings kafkaSettings = new()
+        {
+            BootstrapServers = configuration["Kafka:BootstrapServers"]!
+        };
+        services.AddSingleton<IKafkaProducer>(sp =>
+            new KafkaProducer(kafkaSettings, sp.GetRequiredService<ILogger<KafkaProducer>>()));
 
         return services;
     }
