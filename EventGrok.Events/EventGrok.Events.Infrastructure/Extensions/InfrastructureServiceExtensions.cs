@@ -5,6 +5,7 @@ using EventGrok.Events.Infrastructure.Data;
 using EventGrok.Events.Infrastructure.Repositories;
 using EventGrok.Events.Application.Interfaces;
 using EventGrok.Events.Infrastructure.Settings;
+using EventGrok.Events.Infrastructure.Kafka;
 
 namespace EventGrok.Events.Infrastructure.Extensions;
 
@@ -24,6 +25,17 @@ public static class InfrastructureServiceExtensions
             Audience = configuration["JwtSettings:Audience"]!
         };
         services.AddSingleton(jwtSettings);
+
+        KafkaSettings kafkaSettings = new()
+        {
+            BootstrapServers = configuration["Kafka:BootstrapServers"]!,
+            ConsumerGroup = configuration["Kafka:ConsumerGroup"]!
+        };
+        services.AddSingleton(kafkaSettings);
+
+        services.AddHostedService<TopicInitializerService>();
+
+        services.AddHostedService<BookingConfirmedConsumer>();
 
         return services;
     }
