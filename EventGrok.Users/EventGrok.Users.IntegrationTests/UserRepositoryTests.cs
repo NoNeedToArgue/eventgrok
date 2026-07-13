@@ -1,22 +1,22 @@
 using Microsoft.EntityFrameworkCore;
-using EventGrok.Infrastructure.Data;
-using EventGrok.Infrastructure.Repositories;
-using EventGrok.Domain.Entities;
-using EventGrok.IntegrationTests.Fixtures;
-using EventGrok.IntegrationTests.CollectionDefinitions;
+using EventGrok.Users.Infrastructure.Data;
+using EventGrok.Users.Infrastructure.Repositories;
+using EventGrok.Users.Domain.Entities;
+using EventGrok.Users.IntegrationTests.Fixtures;
+using EventGrok.Users.IntegrationTests.CollectionDefinitions;
 
-namespace EventGrok.IntegrationTests;
+namespace EventGrok.Users.IntegrationTests;
 
 [Collection(nameof(PostgresTestCollection))]
 public class UserRepositoryTests(PostgresContainerFixture fixture)
 {
-    private async Task<AppDbContext> CreateContextAsync()
+    private async Task<UsersDbContext> CreateContextAsync()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<UsersDbContext>()
             .UseNpgsql(fixture.ConnectionString)
             .Options;
 
-        var context = new AppDbContext(options);
+        var context = new UsersDbContext(options);
         await context.Database.MigrateAsync();
         return context;
     }
@@ -26,7 +26,7 @@ public class UserRepositoryTests(PostgresContainerFixture fixture)
         await using var context = await CreateContextAsync();
         
         await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE");
+            "TRUNCATE TABLE users RESTART IDENTITY CASCADE");
     }
 
     private static User CreateValidUser() =>

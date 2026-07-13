@@ -1,14 +1,14 @@
-﻿using EventGrok.Infrastructure.Data;
-using EventGrok.Domain.Entities;
-using EventGrok.Domain.Exceptions;
-using EventGrok.Application.Services;
-using EventGrok.Application.DTOs;
-using EventGrok.Application.Interfaces;
-using EventGrok.Infrastructure.Repositories;
+﻿using EventGrok.Events.Infrastructure.Data;
+using EventGrok.Events.Domain.Entities;
+using EventGrok.Events.Domain.Exceptions;
+using EventGrok.Events.Application.Services;
+using EventGrok.Events.Application.DTOs;
+using EventGrok.Events.Application.Interfaces;
+using EventGrok.Events.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EventGrok.Tests;
+namespace EventGrok.Events.Tests;
 
 public class EventServiceTests
 {
@@ -21,7 +21,7 @@ public class EventServiceTests
 
         var services = new ServiceCollection();
         
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddDbContext<EventsDbContext>(options =>
             options.UseInMemoryDatabase(_dbName));
 
         services.AddScoped<IEventRepository, EventRepository>();

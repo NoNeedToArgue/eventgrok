@@ -34,7 +34,7 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> CancelBooking(Guid id, CancellationToken ct = default)
     {
-        Guid userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        Guid userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         bool isAdmin = User.IsInRole("Admin");
 
         await bookingService.CancelBookingAsync(id, userId, isAdmin, ct);

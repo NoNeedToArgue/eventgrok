@@ -1,24 +1,24 @@
 using Microsoft.EntityFrameworkCore;
-using EventGrok.Infrastructure.Data;
-using EventGrok.Infrastructure.Repositories;
-using EventGrok.Domain.Entities;
-using EventGrok.IntegrationTests.Fixtures;
-using EventGrok.IntegrationTests.CollectionDefinitions;
+using EventGrok.Bookings.Infrastructure.Data;
+using EventGrok.Bookings.Infrastructure.Repositories;
+using EventGrok.Bookings.Domain.Entities;
+using EventGrok.Bookings.IntegrationTests.Fixtures;
+using EventGrok.Bookings.IntegrationTests.CollectionDefinitions;
 
-namespace EventGrok.IntegrationTests;
+namespace EventGrok.Bookings.IntegrationTests;
 
 [Collection(nameof(PostgresTestCollection))]
 public class BookingRepositoryTests(PostgresContainerFixture fixture)
 {
     private static readonly Guid TestUserId = Guid.NewGuid();
 
-    private async Task<AppDbContext> CreateContextAsync()
+    private async Task<BookingsDbContext> CreateContextAsync()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<BookingsDbContext>()
             .UseNpgsql(fixture.ConnectionString)
             .Options;
 
-        var context = new AppDbContext(options);
+        var context = new BookingsDbContext(options);
         await context.Database.MigrateAsync();
         return context;
     }
@@ -28,24 +28,8 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
         await using var context = await CreateContextAsync();
         
         await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE");
-
-        await context.Database.ExecuteSqlRawAsync(
-            "INSERT INTO users (\"Id\", \"Login\", \"PasswordHash\", \"Role\") VALUES ({0}, {1}, {2}, {3})",
-            TestUserId, "testuser", "testhash", 0);
+            "TRUNCATE TABLE bookings RESTART IDENTITY CASCADE");
     }
-
-    private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
-        Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
-
-    private static Booking CreateValidBooking(Guid eventId, BookingStatus status = BookingStatus.Pending) => new()
-    {
-        Id = Guid.NewGuid(),
-        EventId = eventId,
-        UserId = TestUserId,
-        Status = status,
-        CreatedAt = DateTime.UtcNow
-    };
 
     [Fact]
     public async Task AddBookingAsync_ValidBooking_SavesToDatabase()
@@ -53,14 +37,11 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
         // Arrange
         await ResetDatabaseAsync();
         await using var context = await CreateContextAsync();
-        var eventRepo = new EventRepository(context);
         var bookingRepo = new BookingRepository(context);
 
-        Event testEvent = CreateValidEvent();
-        await eventRepo.AddEventAsync(testEvent);
-        await eventRepo.SaveChangesAsync();
-
-        Booking booking = CreateValidBooking(testEvent.Id);
+        var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        Booking booking = Booking.Create(eventId, userId);
 
         // Act
         await bookingRepo.AddBookingAsync(booking);
@@ -79,14 +60,12 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
         // Arrange
         await ResetDatabaseAsync();
         await using var context = await CreateContextAsync();
-        var eventRepo = new EventRepository(context);
         var bookingRepo = new BookingRepository(context);
 
-        Event testEvent = CreateValidEvent();
-        await eventRepo.AddEventAsync(testEvent);
-        await eventRepo.SaveChangesAsync();
+        var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        Booking booking = Booking.Create(eventId, userId);
 
-        Booking booking = CreateValidBooking(testEvent.Id);
         await bookingRepo.AddBookingAsync(booking);
         await bookingRepo.SaveChangesAsync();
 
@@ -104,16 +83,15 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
         // Arrange
         await ResetDatabaseAsync();
         await using var context = await CreateContextAsync();
-        var eventRepo = new EventRepository(context);
         var bookingRepo = new BookingRepository(context);
 
-        Event testEvent = CreateValidEvent();
-        await eventRepo.AddEventAsync(testEvent);
-        await eventRepo.SaveChangesAsync();
+        var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
 
-        Booking pending1 = CreateValidBooking(testEvent.Id, BookingStatus.Pending);
-        Booking pending2 = CreateValidBooking(testEvent.Id, BookingStatus.Pending);
-        Booking confirmed = CreateValidBooking(testEvent.Id, BookingStatus.Confirmed);
+        Booking pending1 = Booking.Create(eventId, userId);
+        Booking pending2 = Booking.Create(eventId, userId);
+        Booking confirmed = Booking.Create(eventId, userId);
+        confirmed.Confirm();
 
         await bookingRepo.AddBookingAsync(pending1);
         await bookingRepo.AddBookingAsync(pending2);
@@ -135,25 +113,19 @@ public class BookingRepositoryTests(PostgresContainerFixture fixture)
         // Arrange
         await ResetDatabaseAsync();
         await using var context = await CreateContextAsync();
-        var eventRepo = new EventRepository(context);
         var bookingRepo = new BookingRepository(context);
 
-        Event testEvent = CreateValidEvent();
-        await eventRepo.AddEventAsync(testEvent);
-        await eventRepo.SaveChangesAsync();
+        var eventId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        Booking booking = Booking.Create(eventId, userId);
 
-        Booking booking = CreateValidBooking(testEvent.Id);
         await bookingRepo.AddBookingAsync(booking);
         await bookingRepo.SaveChangesAsync();
 
         // Act
         Booking? trackedBooking = await bookingRepo.GetBookingByIdAsync(booking.Id);
 
-        if (trackedBooking is not null)
-        {
-            trackedBooking.Status = BookingStatus.Confirmed;
-            trackedBooking.ProcessedAt = DateTime.UtcNow;
-        }
+        trackedBooking?.Confirm();
 
         await bookingRepo.SaveChangesAsync();
 

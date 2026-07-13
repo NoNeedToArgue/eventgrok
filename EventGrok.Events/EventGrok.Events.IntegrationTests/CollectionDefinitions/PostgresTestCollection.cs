@@ -1,6 +1,6 @@
-using EventGrok.IntegrationTests.Fixtures;
+using EventGrok.Events.IntegrationTests.Fixtures;
 
-namespace EventGrok.IntegrationTests.CollectionDefinitions;
+namespace EventGrok.Events.IntegrationTests.CollectionDefinitions;
 
 [CollectionDefinition(nameof(PostgresTestCollection))]
 public class PostgresTestCollection : ICollectionFixture<PostgresContainerFixture> {}

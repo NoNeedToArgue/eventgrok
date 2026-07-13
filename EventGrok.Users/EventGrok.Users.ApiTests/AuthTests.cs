@@ -1,13 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
-using EventGrok.ApiTests.Fixtures;
-using EventGrok.Application.DTOs;
+using EventGrok.Users.ApiTests.Fixtures;
+using EventGrok.Users.Application.DTOs;
 using System.Net.Http.Json;
 using System.Net;
-using EventGrok.Infrastructure.Data;
-using EventGrok.Domain.Entities;
+using EventGrok.Users.Infrastructure.Data;
+using EventGrok.Users.Domain.Entities;
 
-namespace EventGrok.ApiTests;
+namespace EventGrok.Users.ApiTests;
 
 public class AuthTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
 {
@@ -52,7 +52,7 @@ public class AuthTests(CustomWebApplicationFactory factory) : IClassFixture<Cust
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
         User user = await context.Users.SingleAsync(u => u.Login == login);
         Assert.Equal(Role.User, user.Role);
     }

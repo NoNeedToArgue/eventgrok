@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EventGrok.Bookings.Presentation\EventGrok.Bookings.Presentation.csproj" />
+    <ProjectReference Include="..\EventGrok.Bookings.Infrastructure\EventGrok.Bookings.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -18,12 +23,6 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\EventGrok.Presentation\EventGrok.Presentation.csproj" />
-    <ProjectReference Include="..\EventGrok.Infrastructure\EventGrok.Infrastructure.csproj" />
-    <ProjectReference Include="..\EventGrok.Domain\EventGrok.Domain.csproj" />
   </ItemGroup>
 
 </Project>

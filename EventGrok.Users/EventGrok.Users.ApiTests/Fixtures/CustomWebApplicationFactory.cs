@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
-using EventGrok.Infrastructure.Data;
+using EventGrok.Users.Infrastructure.Data;
 
-namespace EventGrok.ApiTests.Fixtures;
+namespace EventGrok.Users.ApiTests.Fixtures;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -18,12 +18,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+                d => d.ServiceType == typeof(DbContextOptions<UsersDbContext>));
             
             if (descriptor != null)
                 services.Remove(descriptor);
 
-            services.AddDbContext<AppDbContext>(options =>
+            services.AddDbContext<UsersDbContext>(options =>
                 options.UseNpgsql(ConnectionString));
         });
     }
@@ -33,7 +33,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         await _postgres.StartAsync();
 
         using var scope = Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
         await context.Database.MigrateAsync();
     }
 
@@ -48,9 +48,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     public async Task ResetDatabaseAsync()
     {
         using var scope = Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
         
         await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE");
+            "TRUNCATE TABLE users RESTART IDENTITY CASCADE");
     }
 }

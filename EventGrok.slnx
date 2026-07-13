@@ -1,9 +1,12 @@
 <Solution>
   <Folder Name="/EventGrok.Bookings/">
+    <Project Path="EventGrok.Bookings/EventGrok.Bookings.ApiTests/EventGrok.Bookings.ApiTests.csproj" />
     <Project Path="EventGrok.Bookings/EventGrok.Bookings.Application/EventGrok.Bookings.Application.csproj" />
     <Project Path="EventGrok.Bookings/EventGrok.Bookings.Domain/EventGrok.Bookings.Domain.csproj" />
     <Project Path="EventGrok.Bookings/EventGrok.Bookings.Infrastructure/EventGrok.Bookings.Infrastructure.csproj" />
+    <Project Path="EventGrok.Bookings/EventGrok.Bookings.IntegrationTests/EventGrok.Bookings.IntegrationTests.csproj" />
     <Project Path="EventGrok.Bookings/EventGrok.Bookings.Presentation/EventGrok.Bookings.Presentation.csproj" />
+    <Project Path="EventGrok.Bookings/EventGrok.Bookings.Tests/EventGrok.Bookings.Tests.csproj" />
   </Folder>
   <Folder Name="/EventGrok.Contracts/">
     <Project Path="EventGrok.Contracts/EventGrok.Contracts.csproj" />
@@ -12,12 +15,16 @@
     <Project Path="EventGrok.Events/EventGrok.Events.Application/EventGrok.Events.Application.csproj" />
     <Project Path="EventGrok.Events/EventGrok.Events.Domain/EventGrok.Events.Domain.csproj" />
     <Project Path="EventGrok.Events/EventGrok.Events.Infrastructure/EventGrok.Events.Infrastructure.csproj" />
+    <Project Path="EventGrok.Events/EventGrok.Events.IntegrationTests/EventGrok.Events.IntegrationTests.csproj" />
     <Project Path="EventGrok.Events/EventGrok.Events.Presentation/EventGrok.Events.Presentation.csproj" />
+    <Project Path="EventGrok.Events/EventGrok.Events.Tests/EventGrok.Events.Tests.csproj" />
   </Folder>
   <Folder Name="/EventGrok.Users/">
+    <Project Path="EventGrok.Users/EventGrok.Users.ApiTests/EventGrok.Users.ApiTests.csproj" />
     <Project Path="EventGrok.Users/EventGrok.Users.Application/EventGrok.Users.Application.csproj" />
     <Project Path="EventGrok.Users/EventGrok.Users.Domain/EventGrok.Users.Domain.csproj" />
     <Project Path="EventGrok.Users/EventGrok.Users.Infrastructure/EventGrok.Users.Infrastructure.csproj" />
+    <Project Path="EventGrok.Users/EventGrok.Users.IntegrationTests/EventGrok.Users.IntegrationTests.csproj" />
     <Project Path="EventGrok.Users/EventGrok.Users.Presentation/EventGrok.Users.Presentation.csproj" />
   </Folder>
 </Solution>
