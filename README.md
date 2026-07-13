@@ -1,71 +1,46 @@
 # EventGrok API
 
-ASP.NET Core Web API для управления событиями.
+Микросервисная система управления событиями на базе ASP.NET Core Web API.
 
 ## Структура проекта
 
-Clean Architecture:
-
-| Слой | Назначение |
+| Сервис / Проект | Назначение |
 |---|---|
-| `EventGrok.Domain` | Сущности (`Event`, `Booking`), доменные правила и исключения |
-| `EventGrok.Application` | Сервисы, DTO, интерфейсы репозиториев (порты), фоновые сервисы |
-| `EventGrok.Infrastructure` | Реализация репозиториев, `AppDbContext`, миграции EF Core |
-| `EventGrok.Presentation` | Контроллеры, middleware, `Program.cs` (composition root) |
-| `EventGrok.Tests` | Юнит-тесты (InMemory EF Core) |
-| `EventGrok.IntegrationTests` | Интеграционные тесты (PostgreSQL в Docker через Testcontainers) |
-| `EventGrok.ApiTests` | E2E-тесты API (WebApplicationFactory + Testcontainers) |
+| `EventGrok.Contracts` | Общие DTO для межсервисного взаимодействия и имена топиков Kafka |
+| `EventGrok.Users.*` | Управление пользователями, выдача JWT-токенов |
+| `EventGrok.Events.*` | CRUD событий (Admin), подписка на Kafka для списания мест |
+| `EventGrok.Bookings.*` | Создание броней, публикация событий в Kafka |
+| `*.Tests` | Юнит-тесты (InMemory EF Core) |
+| `*.IntegrationTests` | Интеграционные тесты (PostgreSQL в Docker через Testcontainers) |
+| `*.ApiTests` | E2E-тесты API (WebApplicationFactory + Testcontainers) |
+
+Clean Architecture: каждый сервис имеет свои слои (`Domain`, `Application`, `Infrastructure`, `Presentation`) и изолированную базу данных.
 
 ## Запуск
 
-1. Для работы приложения требуется PostgreSQL. При использовании локальной БД настройте строку подключения в `appsettings.json`.
-
-   Docker. Запустите из корневой папки:
-   ```bash
-   docker compose up -d
-   ```
+1. Запустите из корневой папки:
    
-   Схема БД управляется миграциями EF Core. При запуске применяется `Migrate()`.
-
-2. Запустите из корневой папки:
    ```bash
-   dotnet run --project EventGrok.Presentation
+   docker-compose up -d
    ```
-   
-3. Откройте Swagger UI: http://localhost:5263/swagger
 
-## Миграции
+2. Сервисы будут доступны по адресам:
 
-Создание:
-```bash
-dotnet ef migrations add <Name> --project EventGrok.Infrastructure --startup-project EventGrok.Presentation
-```
-Применение:
-```bash
-dotnet ef database update --project EventGrok.Infrastructure --startup-project EventGrok.Presentation
-```
+    - Users API: http://localhost:5001/swagger
+    - Events API: http://localhost:5002/swagger
+    - Bookings API: http://localhost:5003/swagger
 
 ## Тесты
 
-**Юнит-тесты используют EF Core InMemory Provider.**
+Каждый сервис содержит свои наборы тестов:
+
+  - Юнит-тесты используют EF Core InMemory Provider.
+  - Интеграционные тесты используют PostgreSQL в Docker
+  - E2E-тесты API используют `WebApplicationFactory` и PostgreSQL в Docker
 
 Запустите из корневой папки:
 ```bash
-dotnet test EventGrok.Tests/EventGrok.Tests.csproj
-```
-
-**Интеграционные тесты используют PostgreSQL в Docker. Требуется запущенный Docker Desktop.**
-
-Запустите из корневой папки:
-```bash
-dotnet test EventGrok.IntegrationTests/EventGrok.IntegrationTests.csproj
-```
-
-**E2E-тесты API используют `WebApplicationFactory` и PostgreSQL в Docker. Требуется запущенный Docker Desktop.**
-
-Запустите из корневой папки:
-```bash
-dotnet test EventGrok.ApiTests/EventGrok.ApiTests.csproj
+dotnet test -m:1
 ```
 
 ## Аутентификация
@@ -76,6 +51,8 @@ dotnet test EventGrok.ApiTests/EventGrok.ApiTests.csproj
 | --- | --- |
 | `User` | Регистрация, логин, просмотр событий, бронирование, отмена своей брони |
 | `Admin` | Все действия `User` + CRUD событий, отмена любой брони |
+
+Сервис `Users` выдаёт JWT-токен. Сервисы `Events` и `Bookings` его валидируют.
 
 Защищённые эндпоинты возвращают `401` без токена и `403` при недостаточных правах.
 
@@ -105,18 +82,11 @@ dotnet test EventGrok.ApiTests/EventGrok.ApiTests.csproj
 
 ## API
 
-| Метод | Путь | Описание |
-| :--- | :--- | :--- |
-| `POST` | `/auth/register` | Регистрация пользователя |
-| `POST` | `/auth/login` | Получение JWT-токена |
-| `GET` | `/events` | Список всех событий |
-| `GET` | `/events/{id}` | Получение события по ID |
-| `POST` | `/events` | Создание нового события |
-| `PUT` | `/events/{id}` | Обновление события |
-| `DELETE` | `/events/{id}` | Удаление события |
-| `POST` | `/events/{id}/book` | Создание брони для события |
-| `GET` | `/bookings/{id}` | Получение брони по ID |
-| `DELETE` | `/bookings/{id}` | Отмена брони |
+| Сервис | Основные эндпоинты |
+|---|---|
+| **Users** | `POST /auth/register`, `POST /auth/login` |
+| **Events** | `GET/POST/PUT/DELETE /events` (требует роль `Admin`) |
+| **Bookings** | `POST /bookings`, `GET /bookings/{id}`, `DELETE /bookings/{id}` |
 
 ### Параметры фильтрации для `GET /events`
 
@@ -185,19 +155,8 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
 | `Rejected` | Отклонена |
 | `Cancelled` | Отменена |
 
-### Фоновая обработка
+## Асинхронное взаимодействие (Kafka)
 
-Бронирования со статусом `Pending` автоматически обрабатываются фоновым сервисом:
-- Опрос каждые 2 секунды
-- Статус меняется на `Confirmed`, заполняется `ProcessedAt`
-
-### Синхронизация
-
-**Защита от овербукинга:** 
-
-При одновременных запросах создаётся ровно столько броней, сколько доступно мест (`AvailableSeats`). Остальные получают `409 Conflict`. 
-
-Запустите из корневой папки:
-```bash
-dotnet test EventGrok.Tests/EventGrok.Tests.csproj --filter "Type=Concurrency"
-```
+1. При создании брони сервис **Bookings** сохраняет её со статусом `Pending` и немедленно возвращает ответ клиенту.
+2. Фоновый сервис (Background Service) обрабатывает новые брони, подтверждает их и публикует событие `BookingConfirmed` в топик Kafka.
+3. Сервис **Events** подписан на этот топик. При получении сообщения он находит событие по `EventId` и уменьшает `AvailableSeats`.
