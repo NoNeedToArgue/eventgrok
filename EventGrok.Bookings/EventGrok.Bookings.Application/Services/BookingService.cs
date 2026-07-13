@@ -7,42 +7,33 @@ namespace EventGrok.Bookings.Application.Services;
 
 public class BookingService(IBookingRepository bookingRepo) : IBookingService
 {
-    private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
     public const int ActiveBookingsLimit = 10;
 
     public async Task<BookingDto> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct = default)
     {
-        await _bookingSemaphore.WaitAsync(ct);
-        try
+        int activeBookingsCount = await bookingRepo.GetActiveBookingsCountByUserAsync(userId, ct);
+        if (activeBookingsCount >= ActiveBookingsLimit)
+            throw new ActiveBookingsLimitException($"Превышен лимит активных бронирований ({ActiveBookingsLimit})");
+
+        Booking booking = new()
         {
-            int activeBookingsCount = await bookingRepo.GetActiveBookingsCountByUserAsync(userId, ct);
-            if (activeBookingsCount >= ActiveBookingsLimit)
-                throw new ActiveBookingsLimitException($"Превышен лимит активных бронирований ({ActiveBookingsLimit})");
+            Id = Guid.NewGuid(),
+            EventId = eventId,
+            UserId = userId,
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            Booking booking = new()
-            {
-                Id = Guid.NewGuid(),
-                EventId = eventId,
-                UserId = userId,
-                Status = BookingStatus.Pending,
-                CreatedAt = DateTime.UtcNow
-            };
+        await bookingRepo.AddBookingAsync(booking, ct);
+        await bookingRepo.SaveChangesAsync(ct);
 
-            await bookingRepo.AddBookingAsync(booking, ct);
-            await bookingRepo.SaveChangesAsync(ct);
-
-            return new BookingDto(
-                booking.Id,
-                booking.EventId,
-                booking.Status.ToString(),
-                booking.CreatedAt,
-                booking.ProcessedAt
-            );
-        }
-        finally
-        {
-            _bookingSemaphore.Release();
-        }
+        return new BookingDto(
+            booking.Id,
+            booking.EventId,
+            booking.Status.ToString(),
+            booking.CreatedAt,
+            booking.ProcessedAt
+        );
     }
 
     public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default)
