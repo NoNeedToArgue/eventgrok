@@ -49,22 +49,7 @@ public class BookingProcessingBackgroundService(
         Booking booking = await bookingRepo.GetBookingByIdAsync(bookingId, stoppingToken) ??
             throw new KeyNotFoundException($"Booking with id = {bookingId} not found");
 
-        Action<Booking> applyStatus;
-
-        try
-        {
-            applyStatus = booking => booking.Confirm();
-        }
-        catch (KeyNotFoundException)
-        {
-            applyStatus = booking => booking.Reject();
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            applyStatus = booking => booking.Reject();
-        }
-
-        applyStatus(booking);
+        booking.Confirm();
         await bookingRepo.SaveChangesAsync(stoppingToken);
 
         if (booking.Status == BookingStatus.Confirmed)
@@ -74,6 +59,7 @@ public class BookingProcessingBackgroundService(
                 BookingId = booking.Id,
                 EventId = booking.EventId,
                 UserId = booking.UserId,
+                SeatsCount = 1,
                 ConfirmedAt = DateTime.UtcNow
             };
 
