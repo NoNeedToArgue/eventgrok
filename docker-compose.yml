@@ -1,26 +1,120 @@
-# PostgreSQL для EventApi — совпадает с ConnectionStrings:DefaultConnection в appsettings.json
-# Запуск из корня репозитория: docker compose up -d
-# Остановка: docker compose down
-# Данные сохраняются в именованном томе eventapi_pgdata
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: eventapi-postgres
+  users-db:
+    image: postgres:16
     restart: unless-stopped
     environment:
+      POSTGRES_DB: users_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: eventapi
     ports:
       - "5433:5432"
     volumes:
-      - eventapi_pgdata:/var/lib/postgresql/data
+      - users-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d eventapi"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
+  events-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: events_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - events-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bookings-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bookings_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - bookings-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: apache/kafka:latest
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  users-service:
+    build:
+      context: .
+      dockerfile: EventGrok.Users/EventGrok.Users.Presentation/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=users-db;Database=users_db;Username=postgres;Password=postgres
+    depends_on:
+      - users-db
+
+  events-service:
+    build:
+      context: .
+      dockerfile: EventGrok.Events/EventGrok.Events.Presentation/Dockerfile
+    ports:
+      - "5002:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=events-db;Database=events_db;Username=postgres;Password=postgres
+      - Kafka__BootstrapServers=kafka:29092
+    depends_on:
+      - events-db
+      - kafka
+
+  bookings-service:
+    build:
+      context: .
+      dockerfile: EventGrok.Bookings/EventGrok.Bookings.Presentation/Dockerfile
+    ports:
+      - "5003:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=bookings-db;Database=bookings_db;Username=postgres;Password=postgres
+      - Kafka__BootstrapServers=kafka:29092
+    depends_on:
+      - bookings-db
+      - kafka
+
 volumes:
-  eventapi_pgdata:
+  users-data:
+  events-data:
+  bookings-data:
+  kafka-data:
