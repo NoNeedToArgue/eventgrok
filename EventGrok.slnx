@@ -12,6 +12,7 @@
     <Project Path="EventGrok.Contracts/EventGrok.Contracts.csproj" />
   </Folder>
   <Folder Name="/EventGrok.Events/">
+    <Project Path="EventGrok.Events/EventGrok.Events.ApiTests/EventGrok.Events.ApiTests.csproj" />
     <Project Path="EventGrok.Events/EventGrok.Events.Application/EventGrok.Events.Application.csproj" />
     <Project Path="EventGrok.Events/EventGrok.Events.Domain/EventGrok.Events.Domain.csproj" />
     <Project Path="EventGrok.Events/EventGrok.Events.Infrastructure/EventGrok.Events.Infrastructure.csproj" />
