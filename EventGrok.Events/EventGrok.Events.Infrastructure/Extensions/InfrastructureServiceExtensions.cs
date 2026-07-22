@@ -8,6 +8,7 @@ using EventGrok.Events.Infrastructure.Settings;
 using EventGrok.Events.Infrastructure.Kafka;
 using StackExchange.Redis;
 using EventGrok.Events.Infrastructure.Cache;
+using EventGrok.Events.Application.Cache;
 
 namespace EventGrok.Events.Infrastructure.Extensions;
 
@@ -48,6 +49,8 @@ public static class InfrastructureServiceExtensions
         });
 
         services.AddSingleton<ICacheService, RedisCacheService>();
+
+        services.Configure<CacheSettings>(configuration.GetSection("Cache"));
 
         return services;
     }
