@@ -5,8 +5,10 @@ using EventGrok.Events.Application.Services;
 using EventGrok.Events.Application.DTOs;
 using EventGrok.Events.Application.Interfaces;
 using EventGrok.Events.Infrastructure.Repositories;
+using EventGrok.Events.Application.Cache;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace EventGrok.Events.Tests;
 
@@ -20,17 +22,21 @@ public class EventServiceTests
         _dbName = Guid.NewGuid().ToString();
 
         var services = new ServiceCollection();
-        
+
         services.AddDbContext<EventsDbContext>(options =>
             options.UseInMemoryDatabase(_dbName));
 
         services.AddScoped<IEventRepository, EventRepository>();
-        
+
+        services.AddSingleton<ICacheService>(new NullCacheService());
+
+        services.AddSingleton<IOptionsMonitor<CacheSettings>>(new TestCacheSettingsMonitor());
+
         services.AddScoped<IEventService, EventService>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
     }
-        
+
     private static Event CreateValidEvent(string title = "Test Event", int totalSeats = 100) =>
         Event.Create(title, "Description", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), totalSeats);
 
@@ -366,5 +372,26 @@ public class EventServiceTests
 
         // Assert
         Assert.Equal(3, testEvent.AvailableSeats);
+    }
+
+    private sealed class NullCacheService : ICacheService
+    {
+        public Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
+            => Task.FromResult<T?>(default);
+
+        public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public Task RemoveAsync(string key, CancellationToken ct = default)
+            => Task.CompletedTask;
+    }
+
+    private sealed class TestCacheSettingsMonitor : IOptionsMonitor<CacheSettings>
+    {
+        public CacheSettings CurrentValue { get; } = new CacheSettings();
+
+        public CacheSettings Get(string? name) => CurrentValue;
+
+        public IDisposable? OnChange(Action<CacheSettings, string?> listener) => null;
     }
 }

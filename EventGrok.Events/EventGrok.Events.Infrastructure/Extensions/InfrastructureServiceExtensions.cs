@@ -44,7 +44,12 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             var config = ConfigurationOptions.Parse(redisConnectionString);
+            
             config.AbortOnConnectFail = false;
+            config.ConnectTimeout = 2000;
+            config.SyncTimeout = 2000;
+            config.AsyncTimeout = 2000;
+            
             return ConnectionMultiplexer.Connect(config);
         });
 

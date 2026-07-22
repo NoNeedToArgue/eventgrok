@@ -2,6 +2,7 @@ using EventGrok.Events.Domain.Entities;
 using EventGrok.Events.Infrastructure.Data;
 using EventGrok.Events.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace EventGrok.Events.Infrastructure.Repositories;
 
@@ -39,6 +40,17 @@ public class EventRepository(EventsDbContext context) : IEventRepository
 
     public async Task<Event?> GetEventByIdAsync(Guid id, CancellationToken ct = default) =>
         await context.Events.FirstOrDefaultAsync(e => e.Id == id, ct);
+
+    public async Task<IReadOnlyList<Event>> GetTopEventsAsync(int count, CancellationToken ct = default)
+    {
+        IQueryable<Event> query = context.Events
+            .AsNoTracking()
+            .Where(e => e.TotalSeats > 0)
+            .OrderByDescending(e => (e.TotalSeats - e.AvailableSeats) / (double)e.TotalSeats)
+            .Take(count);
+
+        return await query.ToListAsync(ct);
+    }
 
     public async Task AddEventAsync(Event newEvent, CancellationToken ct = default)
     {
