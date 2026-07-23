@@ -73,6 +73,19 @@ services:
       timeout: 10s
       retries: 15
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   users-service:
     build:
       context: .
@@ -94,6 +107,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=events-db;Database=events_db;Username=postgres;Password=postgres
+      - ConnectionStrings__Redis=redis:6379
       - Kafka__BootstrapServers=kafka:29092
     depends_on:
       - events-db
@@ -118,3 +132,4 @@ volumes:
   events-data:
   bookings-data:
   kafka-data:
+  redis-data:
