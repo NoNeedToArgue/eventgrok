@@ -112,6 +112,7 @@ services:
     depends_on:
       - events-db
       - kafka
+      - redis
 
   bookings-service:
     build:
