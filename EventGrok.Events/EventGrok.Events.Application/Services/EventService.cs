@@ -87,6 +87,8 @@ public class EventService(
         existingEvent.AvailableSeats = Math.Max(0, existingEvent.TotalSeats - bookedSeats);
 
         await eventRepo.SaveChangesAsync(ct);
+
+        await cache.RemoveAsync(CacheKeys.EventById(id), ct);
     }
 
     public async Task RemoveEventAsync(Guid id, CancellationToken ct = default)
@@ -96,6 +98,8 @@ public class EventService(
 
         await eventRepo.RemoveEventAsync(existingEvent, ct);
         await eventRepo.SaveChangesAsync(ct);
+
+        await cache.RemoveAsync(CacheKeys.EventById(id), ct);
     }
 
     private static EventInfoDto MapToDto(Event e) => new(
