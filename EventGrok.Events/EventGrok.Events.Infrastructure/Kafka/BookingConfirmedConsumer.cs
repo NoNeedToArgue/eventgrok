@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Confluent.Kafka;
 using System.Text.Json;
 using EventGrok.Events.Application.Interfaces;
+using EventGrok.Events.Application.Cache;
 using EventGrok.Events.Domain.Entities;
 
 namespace EventGrok.Events.Infrastructure.Kafka;
@@ -14,6 +15,7 @@ namespace EventGrok.Events.Infrastructure.Kafka;
 public class BookingConfirmedConsumer(
     KafkaSettings settings,
     IServiceScopeFactory scopeFactory,
+    ICacheService cache,
     ILogger<BookingConfirmedConsumer> logger
 ) : BackgroundService
 {
@@ -44,7 +46,7 @@ public class BookingConfirmedConsumer(
                 try
                 {
                     var result = consumer.Consume(stoppingToken);
-                    await ProcessMessageAsync(result.Message);
+                    await ProcessMessageAsync(result.Message, stoppingToken);
                     consumer.Commit(result);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -59,7 +61,7 @@ public class BookingConfirmedConsumer(
         }
     }
 
-    private async Task ProcessMessageAsync(Message<string, string> message)
+    private async Task ProcessMessageAsync(Message<string, string> message, CancellationToken ct)
     {
         var bookingConfirmed = JsonSerializer.Deserialize<BookingConfirmed>(message.Value)!;
 
@@ -68,7 +70,7 @@ public class BookingConfirmedConsumer(
 
         try
         {
-            Event? eventEntity = await eventRepo.GetEventByIdAsync(bookingConfirmed.EventId);
+            Event? eventEntity = await eventRepo.GetEventByIdAsync(bookingConfirmed.EventId, ct);
 
             if (eventEntity is null)
             {
@@ -84,13 +86,15 @@ public class BookingConfirmedConsumer(
                 return;
             }
 
-            await eventRepo.SaveChangesAsync();
+            await eventRepo.SaveChangesAsync(ct);
+
+            await cache.RemoveAsync(CacheKeys.EventById(bookingConfirmed.EventId), ct);
 
             logger.LogInformation(
                 "Reserved {SeatsCount} seats for event {EventId} (booking {BookingId})",
                 bookingConfirmed.SeatsCount, bookingConfirmed.EventId, bookingConfirmed.BookingId);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex,
                 "Failed to process booking {BookingId} for event {EventId}, skipping message",

@@ -18,13 +18,31 @@ public class EventsController(IEventService eventService) : ControllerBase
         int pageSize = 10,
         CancellationToken ct = default)
     {
-        return await eventService.GetEventsAsync(title, from, to, page, pageSize, ct);
+        PaginatedResultDto<EventInfoDto> events = await eventService.GetEventsAsync(
+            title,
+            from,
+            to,
+            page,
+            pageSize,
+            ct);
+
+        return Ok(events);
+    }
+
+    [HttpGet("top")]
+    public async Task<ActionResult<IReadOnlyList<EventInfoDto>>> GetTopEvents(CancellationToken ct = default)
+    {
+        IReadOnlyList<EventInfoDto> topEvents = await eventService.GetTopEventsAsync(ct);
+
+        return Ok(topEvents);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<EventInfoDto>> GetEventById(Guid id, CancellationToken ct = default)
     {
-        return await eventService.GetEventByIdAsync(id, ct);
+        EventInfoDto eventById = await eventService.GetEventByIdAsync(id, ct);
+
+        return Ok(eventById);
     }
 
     [Authorize(Roles = "Admin")]

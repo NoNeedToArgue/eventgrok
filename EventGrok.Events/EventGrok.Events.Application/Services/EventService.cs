@@ -2,11 +2,18 @@ using EventGrok.Events.Domain.Entities;
 using EventGrok.Events.Domain.Exceptions;
 using EventGrok.Events.Application.Interfaces;
 using EventGrok.Events.Application.DTOs;
+using EventGrok.Events.Application.Cache;
+using Microsoft.Extensions.Options;
 
 namespace EventGrok.Events.Application.Services;
 
-public class EventService(IEventRepository eventRepo) : IEventService
+public class EventService(
+    IEventRepository eventRepo,
+    ICacheService cache,
+    IOptionsMonitor<CacheSettings> cacheSettings) : IEventService
 {
+    private const int TopEventsCount = 10;
+
     public async Task<PaginatedResultDto<EventInfoDto>> GetEventsAsync(
         string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
@@ -20,10 +27,35 @@ public class EventService(IEventRepository eventRepo) : IEventService
 
     public async Task<EventInfoDto> GetEventByIdAsync(Guid id, CancellationToken ct = default)
     {
+        string cacheKey = CacheKeys.EventById(id);
+
+        var cached = await cache.GetAsync<EventInfoDto>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
+
         Event eventById = await eventRepo.GetEventByIdAsync(id, ct) ??
             throw new EventNotFoundException(id);
 
-        return MapToDto(eventById);
+        EventInfoDto dto = MapToDto(eventById);
+
+        await cache.SetAsync(cacheKey, dto, cacheSettings.CurrentValue.EventTtl, ct);
+
+        return dto;
+    }
+
+    public async Task<IReadOnlyList<EventInfoDto>> GetTopEventsAsync(CancellationToken ct = default)
+    {
+        var cached = await cache.GetAsync<List<EventInfoDto>>(CacheKeys.TopEvents, ct);
+        if (cached is not null)
+            return cached;
+
+        IReadOnlyList<Event> topEvents = await eventRepo.GetTopEventsAsync(TopEventsCount, ct);
+
+        List<EventInfoDto> dtos = [.. topEvents.Select(MapToDto)];
+
+        await cache.SetAsync(CacheKeys.TopEvents, dtos, cacheSettings.CurrentValue.TopEventsTtl, ct);
+
+        return dtos;
     }
 
     public async Task<EventInfoDto> CreateEventAsync(CreateEventDto dto, CancellationToken ct = default)
@@ -55,6 +87,8 @@ public class EventService(IEventRepository eventRepo) : IEventService
         existingEvent.AvailableSeats = Math.Max(0, existingEvent.TotalSeats - bookedSeats);
 
         await eventRepo.SaveChangesAsync(ct);
+
+        await cache.RemoveAsync(CacheKeys.EventById(id), ct);
     }
 
     public async Task RemoveEventAsync(Guid id, CancellationToken ct = default)
@@ -64,6 +98,8 @@ public class EventService(IEventRepository eventRepo) : IEventService
 
         await eventRepo.RemoveEventAsync(existingEvent, ct);
         await eventRepo.SaveChangesAsync(ct);
+
+        await cache.RemoveAsync(CacheKeys.EventById(id), ct);
     }
 
     private static EventInfoDto MapToDto(Event e) => new(

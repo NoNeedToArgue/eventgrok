@@ -6,6 +6,9 @@ using EventGrok.Events.Infrastructure.Repositories;
 using EventGrok.Events.Application.Interfaces;
 using EventGrok.Events.Infrastructure.Settings;
 using EventGrok.Events.Infrastructure.Kafka;
+using StackExchange.Redis;
+using EventGrok.Events.Infrastructure.Cache;
+using EventGrok.Events.Application.Cache;
 
 namespace EventGrok.Events.Infrastructure.Extensions;
 
@@ -36,6 +39,23 @@ public static class InfrastructureServiceExtensions
         services.AddHostedService<TopicInitializerService>();
 
         services.AddHostedService<BookingConfirmedConsumer>();
+
+        string redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
+        {
+            var config = ConfigurationOptions.Parse(redisConnectionString);
+            
+            config.AbortOnConnectFail = false;
+            config.ConnectTimeout = 2000;
+            config.SyncTimeout = 2000;
+            config.AsyncTimeout = 2000;
+            
+            return ConnectionMultiplexer.Connect(config);
+        });
+
+        services.AddSingleton<ICacheService, RedisCacheService>();
+
+        services.Configure<CacheSettings>(configuration.GetSection("Cache"));
 
         return services;
     }

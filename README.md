@@ -34,7 +34,7 @@ Clean Architecture: каждый сервис имеет свои слои (`Dom
 
 Каждый сервис содержит свои наборы тестов:
 
-  - Юнит-тесты используют EF Core InMemory Provider.
+  - Юнит-тесты используют EF Core InMemory Provider
   - Интеграционные тесты используют PostgreSQL в Docker
   - E2E-тесты API используют `WebApplicationFactory` и PostgreSQL в Docker
 
@@ -85,7 +85,7 @@ dotnet test -m:1
 | Сервис | Основные эндпоинты |
 |---|---|
 | **Users** | `POST /auth/register`, `POST /auth/login` |
-| **Events** | `GET/POST/PUT/DELETE /events` (требует роль `Admin`) |
+| **Events** | `GET /events`, `GET /events/{id}`, `GET /events/top`, `POST/PUT/DELETE /events` (требуют роль `Admin`) |
 | **Bookings** | `POST /bookings`, `GET /bookings/{id}`, `DELETE /bookings/{id}` |
 
 ### Параметры фильтрации для `GET /events`
@@ -160,3 +160,37 @@ GET /events?title=концерт&from=2026-01-01&page=2&pageSize=10
 1. При создании брони сервис **Bookings** сохраняет её со статусом `Pending` и немедленно возвращает ответ клиенту.
 2. Фоновый сервис (Background Service) обрабатывает новые брони, подтверждает их и публикует событие `BookingConfirmed` в топик Kafka.
 3. Сервис **Events** подписан на этот топик. При получении сообщения он находит событие по `EventId` и уменьшает `AvailableSeats`.
+
+## Кеширование (Redis)
+
+Сервис **Events** использует Redis (Cache-Aside) для двух сценариев:
+
+| Сценарий | Ключ | TTL | Инвалидация |
+| --- | --- | --- | --- |
+| Получение события по ID | `event:{id}` | 5 мин | `PUT /events/{id}`, `DELETE /events/{id}`, `BookingConfirmed` |
+| Топ-10 по проценту зарезервированных мест | `events:top10` | 10 мин | Нет, только TTL |
+
+### Стратегия
+
+- **Чтение:** проверка кеша → промах → запрос в БД → запись в кеш.
+- **Запись:** сначала сохранение в БД, затем удаление ключа из кеша (invalidate-on-write).
+- **Топ-10:** не инвалидируется при каждом бронировании - рейтинг допускает задержку, TTL достаточно.
+
+### Поведение при недоступности Redis
+
+- `AbortOnConnectFail = false` - сервис стартует без Redis.
+- Ошибки Redis логируются, но не пробрасываются клиенту.
+- Запрос деградирует в PostgreSQL.
+
+### Конфигурация
+
+TTL вынесены в `appsettings.json`:
+
+```json
+"Cache": {
+  "EventTtlMinutes": 5,
+  "TopEventsTtlMinutes": 10
+}
+```
+
+---

@@ -13,6 +13,8 @@ public interface IEventService
         CancellationToken ct = default);
     
     Task<EventInfoDto> GetEventByIdAsync(Guid id, CancellationToken ct = default);
+
+    Task<IReadOnlyList<EventInfoDto>> GetTopEventsAsync(CancellationToken ct = default);
     
     Task<EventInfoDto> CreateEventAsync(CreateEventDto dto, CancellationToken ct = default);
     
