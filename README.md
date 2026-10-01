@@ -193,4 +193,12 @@ TTL вынесены в `appsettings.json`:
 }
 ```
 
----
+## Наблюдаемость
+
+Сервисы инструментированы через OpenTelemetry (трейсы, метрики) и Serilog (JSON-логи).
+
+| Инструмент | Назначение | UI |
+|---|---|---|
+| Jaeger | Распределённые трейсы | http://localhost:16686 |
+| Prometheus | Сбор метрик | http://localhost:9090 |
+| Grafana | Дашборды | http://localhost:3000 (admin/admin) |
